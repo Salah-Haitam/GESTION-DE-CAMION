@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Succès</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .success-container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .btn-back {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-container">
+            <div class="alert alert-success" role="alert">
+                {% if message %}
+                    <h4 class="alert-heading">Opération réussie !</h4>
+                    <p>{{ message }}</p>
+                {% else %}
+                    {% if camion %}
+                        <h4 class="alert-heading">Opération réussie !</h4>
+                        <p>Le camion a été traité avec succès.</p>
+                    {% elif chauffeur %}
+                        <h4 class="alert-heading">Opération réussie !</h4>
+                        <p>Le chauffeur a été ajouté avec succès.</p>
+                    {% elif prestataire %}
+                        <h4 class="alert-heading">Opération réussie !</h4>
+                        <p>Le prestataire a été ajouté avec succès.</p>
+                    {% else %}
+                        <h4 class="alert-heading">Opération réussie !</h4>
+                        <p>L'opération s'est terminée avec succès.</p>
+                    {% endif %}
+                {% endif %}
+            </div>
+            
+            <div class="mt-4">
+                {% if camion %}
+                    <a href="{% url 'afficher_camions' %}" class="btn btn-primary">
+                        Retour à la liste des camions
+                    </a>
+                    <a href="{% url 'ajouter_camion' %}" class="btn btn-outline-secondary">
+                        Ajouter un autre camion
+                    </a>
+                    
+                {% elif chauffeur %}
+                    <a href="{% url 'ajouter_chauffeur' %}" class="btn btn-primary me-2">
+                        Ajouter un autre chauffeur
+                    </a>
+                    <a href="{% url 'afficher_chauffeur' %}" class="btn btn-outline-secondary">
+                        Voir la liste des chauffeurs
+                    </a>
+                {% elif prestataire %}
+                    <a href="{% url 'ajouter_prestataire' %}" class="btn btn-primary me-2">
+                        Ajouter un autre prestataire
+                    </a>
+                    <a href="{% url 'afficher_prestataires' %}" class="btn btn-outline-secondary">
+                        Voir la liste des prestataires
+                    </a>
+                {% else %}
+                    <a href="{% url 'acceuil' %}" class="btn btn-primary">
+                        Retour à l'accueil
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

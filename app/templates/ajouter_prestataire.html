@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block title %}Ajouter un Prestataire{% endblock %}
+
+{% block content %}
+    <h2>Formulaire - Ajouter un Prestataire</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Ajouter</button>
+    </form>
+{% endblock %}

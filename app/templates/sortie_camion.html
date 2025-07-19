@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Sortie du Camion{% endblock %}
+
+{% block content %}
+<script>
+    console.log("=== DEBUT sortie_camion.html ===");
+    console.log("Données du camion:", {
+        id: "{{ camion.id_camion }}",
+        matricule: "{{ camion.matricule_camion }}",
+        date_entree: "{{ camion.date_entreeC }}",
+        heure_entree: "{{ camion.heure_entreeC }}"
+    });
+</script>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Détails du Camion</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Matricule:</strong> {{ camion.matricule_camion }}</p>
+                            <p><strong>Société:</strong> {{ camion.nom_societe }}</p>
+                            <p><strong>Capacité:</strong> {{ camion.capacite }} tonnes</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Chauffeur:</strong> {{ camion.id_chauffeur }}</p>
+                            <p><strong>Date d'entrée:</strong> {{ camion.date_entreeC }}</p>
+                            <p><strong>Heure d'entrée:</strong> {{ camion.heure_entreeC }}</p>
+                            <p><strong>Temps d'attente:</strong> {% if camion.calculer_temps_utilisation %}{{ camion.calculer_temps_utilisation.total_heures }} heures{% else %}En attente{% endif %}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Enregistrer la Sortie</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action=".">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="date_sortieC">Date de sortie</label>
+                            <div class="input-group">
+                                {{ form.date_sortieC }}
+                                {% if form.date_sortieC.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.date_sortieC.errors|join:", " }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="heure_sortieC">Heure de sortie</label>
+                            <div class="input-group">
+                                {{ form.heure_sortieC }}
+                                {% if form.heure_sortieC.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.heure_sortieC.errors|join:", " }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Enregistrer la Sortie</button>
+                            <a href="{% url 'afficher_camions' %}" class="btn btn-secondary">Annuler</a>
+                        </div>
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} mt-3">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </form>
+                    
+                    <!-- Section de débogage (à désactiver en production) -->
+                    {% comment %} {% if debug %}
+                    <div class="mt-4 p-3 bg-light border rounded">
+                        <h6>Informations de débogage :</h6>
+                        <pre>Form data: {{ form.data|pprint }}</pre>
+                        <pre>Form errors: {{ form.errors|pprint }}</pre>
+                        <pre>Form initial: {{ form.initial|pprint }}</pre>
+                    </div>
+                    {% endif %} {% endcomment %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Affichage des valeurs du formulaire dans la console pour débogage
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("Champs du formulaire:");
+        console.log("Date sortie:", document.getElementById('{{ form.date_sortieC.id_for_label }}').value);
+        console.log("Heure sortie:", document.getElementById('{{ form.heure_sortieC.id_for_label }}').value);
+        
+        // Ajout d'un écouteur pour le formulaire
+        document.querySelector('form').addEventListener('submit', function(e) {
+            console.log("Soumission du formulaire");
+            console.log("Date sortie (soumission):", document.getElementById('{{ form.date_sortieC.id_for_label }}').value);
+            console.log("Heure sortie (soumission):", document.getElementById('{{ form.heure_sortieC.id_for_label }}').value);
+        });
+    });
+</script>
+{% endblock %}

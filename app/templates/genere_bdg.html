@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Génération de Badge Chauffeur{% endblock %}
+
+{% block extra_css %}
+<style>
+    .badge-container {
+        max-width: 400px;
+        margin: 20px auto;
+        padding: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .qr-code {
+        max-width: 200px;
+        margin: 0 auto 20px;
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Génération de Badge Chauffeur</h2>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <form method="post" class="mb-5">
+                {% csrf_token %}
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Sélection du Chauffeur</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {{ form.chauffeur.label_tag }}
+                            {{ form.chauffeur }}
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-card-checklist"></i> Afficher le badge
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            {% if show_badge and chauffeur %}
+            <div class="badge-container">
+                <div class="text-center mb-4">
+                    {% if chauffeur.qr_code %}
+                        <img src="{{ chauffeur.qr_code.url }}" class="img-fluid qr-code" alt="QR Code">
+                    {% else %}
+                        <div class="alert alert-warning">Aucun QR code disponible</div>
+                    {% endif %}
+                    
+                    <h3 class="mb-3">{{ chauffeur.nom_chauffeur }} {{ chauffeur.prenom_chauffeur }}</h3>
+                    
+                    <div class="text-start">
+                        <p><strong>ID Chauffeur :</strong> {{ chauffeur.id_chauffeur }}</p>
+                        <p><strong>N° Permis :</strong> {{ chauffeur.permis_chauffeur }}</p>
+                        
+                        {% if camions %}
+                            <div class="mb-3">
+                                <strong>Camion(s) :</strong>
+                                <ul class="list-group mt-2">
+                                    {% for camion in camions %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            {{ camion.matricule_camion }}
+                                            <span class="badge bg-primary rounded-pill">{{ camion.nom_societe }}</span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% else %}
+                            <p class="text-muted">Aucun camion associé</p>
+                        {% endif %}
+                        
+                        {% if prestataire %}
+                            <p><strong>Prestataire :</strong> {{ prestataire.nom_prestataire }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="{% url 'download_badge_pdf' chauffeur.id_chauffeur %}" class="btn btn-success me-2" target="_blank">
+                        <i class="bi bi-download"></i> Télécharger le badge
+                    </a> 
+                    <a href="{% url 'badge_pdf' chauffeur.id_chauffeur %}" class="btn btn-success me-2" target="_blank">
+                        <i class="bi bi-eye"></i> Afficher le badge
+                    </a>
+                    <a href="{% url 'genere_bdg' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-repeat"></i> Nouvelle recherche
+                    </a>
+                    <a href="{% url 'download_zpl' chauffeur.id_chauffeur %}" class="btn btn-success me-2">
+                        <i class="bi bi-download"></i> Télécharger le fichier ZPL
+                    </a>
+                </div>
+                {% comment %} <div class="text-center mt-4">
+                    <button onclick="" class="btn btn-success me-2">
+                        <i class="bi bi-download"></i> telecharger le badge
+                    </button>
+                    <a href="{% url 'genere_bdg' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-repeat"></i> Nouvelle recherche
+                    </a>
+                </div> {% endcomment %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% comment %} 
+<script>
+    function downloadZPL() {
+        const nom = "{{ chauffeur.nom_chauffeur }}";
+        const prenom = "{{ chauffeur.prenom_chauffeur }}";
+        const idChauffeur = "{{ chauffeur.id_chauffeur }}";
+        
+        
+        // Données à encoder dans le QR code
+        const qrData = `NOM: ${nom}\nPRENOM: ${prenom}\nID: ${idChauffeur}`;
+        
+        // Génération du ZPL avec QR code
+        const zplContent = `^XA
+    ^CI28
+    ^MMT
+    ^PW609
+    ^LL0406
+    ^LS0
+    ^FT30,40^A0N,28,28^FH\\^FD${nom} ${prenom}^FS
+    ^FT30,80^A0N,20,20^FH\\^FDID: ${idChauffeur}^FS
+    
+    ^FX QR Code (version 6, échelle 3, correction d'erreur H)
+    ^FO400,50^BQN,2,6^FDQA,${qrData}^FS
+    
+    ^FX Alternative avec code-barres Code128
+    ^FO400,200^BCN,100,Y,N,N^FD${idChauffeur}^FS
+    
+    ^XZ`;
+    
+        // Téléchargement du fichier
+        const blob = new Blob([zplContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `badge_${idChauffeur}.zpl`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+</script> {% endcomment %}
+{% endblock %}
+{% comment %} 
+{% block extra_js %}
+<script>
+    // Initialisation des tooltips Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    // Sélection automatique du premier champ du formulaire
+    document.addEventListener('DOMContentLoaded', function() {
+        const select = document.querySelector('select');
+        if (select) {
+            select.focus();
+        }
+    });
+</script>
+{% endblock %} {% endcomment %}
+{% comment %} <!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Générer un badge</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .badge-container {
+            max-width: 400px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .qr-code {
+            max-width: 200px;
+            margin: 0 auto 20px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="text-center mb-4">Génération de Badge Chauffeur</h2>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <form method="post" class="mb-5">
+                    {% csrf_token %}
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Sélection du Chauffeur</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                {{ form.chauffeur.label_tag }}
+                                {{ form.chauffeur }}
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-card-checklist"></i> Afficher le badge
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                {% if show_badge and chauffeur %}
+                <div class="badge-container">
+                    <div class="text-center mb-4">
+                        {% if chauffeur.qr_code %}
+                            <img src="{{ chauffeur.qr_code.url }}" class="img-fluid qr-code" alt="QR Code">
+                        {% else %}
+                            <div class="alert alert-warning">Aucun QR code disponible</div>
+                        {% endif %}
+                        
+                        <h3 class="mb-3">{{ chauffeur.nom_chauffeur }} {{ chauffeur.prenom_chauffeur }}</h3>
+                        
+                        <div class="text-start">
+                            <p><strong>ID Chauffeur :</strong> {{ chauffeur.id_chauffeur }}</p>
+                            <p><strong>N° Permis :</strong> {{ chauffeur.permis_chauffeur }}</p>
+                            
+                            {% if camions %}
+                                <div class="mb-3">
+                                    <strong>Camion(s) :</strong>
+                                    <ul class="list-group mt-2">
+                                        {% for camion in camions %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                {{ camion.matricule_camion }}
+                                                <span class="badge bg-primary rounded-pill">{{ camion.nom_societe }}</span>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% else %}
+                                <p class="text-muted">Aucun camion associé</p>
+                            {% endif %}
+                            
+                            {% if prestataire %}
+                                <p><strong>Prestataire :</strong> {{ prestataire.nom_prestataire }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button onclick="window.print()" class="btn btn-success me-2">
+                            <i class="bi bi-printer"></i> Imprimer le badge
+                        </button>
+                        <a href="{% url 'genere_bdg' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-repeat"></i> Nouvelle recherche
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <script>
+        // Initialisation des tooltips Bootstrap
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
+        // Sélection automatique du premier champ du formulaire
+        document.addEventListener('DOMContentLoaded', function() {
+            const select = document.querySelector('select');
+            if (select) {
+                select.focus();
+            }
+        });
+    </script>
+</body>
+</html> {% endcomment %}
+{% comment %} {% extends 'base.html' %}
+{% block extra_head %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#id_id_chauffeur').change(function() {
+        var chauffeurId = $(this).val();
+        if (chauffeurId) {
+            $.ajax({
+                url: '/get_chauffeur_info/',
+                data: {
+                    'chauffeur_id': chauffeurId
+                },
+                dataType: 'json',
+                success: function(data) {
+                    if (data.success) {
+                        $('#id_nom_chauffeur').val(data.nom_chauffeur);
+                        $('#id_prenom_chauffeur').val(data.prenom_chauffeur);
+                        if (data.qr_code_url) {
+                            $('.qr-code-preview').html(
+                                '<img src="' + data.qr_code_url + 
+                                '" alt="QR Code" class="img-fluid" style="max-width: 200px;">'
+                            );
+                        }
+                    }
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Génération de Badge</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    {{ form.id_chauffeur.label_tag }}
+                    {{ form.id_chauffeur }}
+                </div>
+                <button type="submit" class="btn btn-primary">Afficher le badge</button>
+            </div>
+        </div>
+    </form>
+
+    {% if show_badge and chauffeur %}
+    <div class="mt-4">
+        <div class="card" style="width: 300px;">
+            <div class="card-header">
+                <h5 class="card-title">Badge Chauffeur</h5>
+            </div>
+            <div class="card-body text-center">
+                {% if chauffeur.qr_code %}
+                    <img src="{{ chauffeur.qr_code.url }}" alt="QR Code" class="img-fluid mb-3" style="max-width: 200px;">
+                {% endif %}
+                <h4 class="card-title">{{ chauffeur.nom_chauffeur }} {{ chauffeur.prenom_chauffeur }}</h4>
+                <p class="card-text">ID: {{ chauffeur.id_chauffeur }}</p>
+                <p class="card-text">Permis: {{ chauffeur.permis_chauffeur }}</p>
+                {% if chauffeur.prestataire %}
+                    <p class="card-text">Prestataire: {{ chauffeur.prestataire.nom_prestataire }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: sans-serif; }
+        .qr { width: 150px; }
+    </style>
+</head>
+<body>
+    <h1>Ticket </h1>
+    <p><strong>ID</strong> {{ chauffeur.id_chauffeur  }}</p>
+    <p><strong>Nom :</strong> {{ chauffeur.nom_chauffeur }}</p>
+    <p><strong>Prénom :</strong> {{ chauffeur.prenom_chauffeur  }}</p>
+    <p><strong>Code QR :</strong> {{ chauffeur.qr_code }}</p>
+    <h3>QR Code chauffeur :</h3>
+    <img class="qr" src="data:image/png;base64,{{ qr_code }}">
+    {% if camion %}
+        <p><strong>Camion actuel :</strong> {{ camion.matricule }}</p>
+    {% else %}
+        <p><strong>Camion actuel :</strong> Aucun camion affecté</p>
+    {% endif %}
+    <p><strong>Nom societe :</strong> {{ camion.nom_societe }}</p>
+    {% if prestataire %}
+    <p><strong>nom_prestataire :</strong> {{ prestataire.nom_prestataire }}</p>
+    {% else %}
+        <p><strong>nom_prestataire :</strong> Aucun prestataire affecté</p>
+    {% endif %}
+    
+</body>
+</html>{% endcomment %}

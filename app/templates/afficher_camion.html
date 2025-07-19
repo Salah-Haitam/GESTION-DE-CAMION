@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Camions sortis{% endblock %}
+
+{% block content %}
+<h1>Camions sortis</h1>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-hover">
+        <thead class="table-primary">
+            <tr>
+                <th style="width: 5%;">ID</th>
+                <th style="width: 8%;">Chauffeur</th>
+                <th style="width: 8%;">Matricule</th>
+                <th style="width: 7%;">Capacité</th>
+                <th style="width: 18%;">QR Code chauffeur</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for camion in camions %}
+            {% if camion.date_sortieC and camion.heure_sortieC %}
+            <tr>
+                <td class="text-center">{{ camion.id_camion }}</td>
+                <td class="text-center">{{ camion.id_chauffeur }}</td>
+                <td class="text-center">{{ camion.matricule_camion }}</td>
+                <td class="text-center">{{ camion.capacite }}</td>
+                <td class="text-center">
+                    {% if camion.id_chauffeur %}
+                        {% if camion.id_chauffeur.qr_code %}
+                            <img src="{{ camion.id_chauffeur.qr_code.url }}" alt="QR Code" class="img-fluid" style="max-width: 120px; height: auto;">
+                        {% else %}
+                            <span class="text-muted">Pas de QR Code</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-muted">Pas de chauffeur</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endif %}
+            {% empty %}
+            <tr>
+                <td colspan="11" class="text-center">Aucun camion sorti.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        console.log("Page des camions sortis chargée avec succès !");
+        
+        // Désactivé le rechargement automatique
+        // var successMessages = document.querySelectorAll('.alert-success');
+        // if (successMessages.length > 0) {
+        //     console.log("Message de succès détecté, rechargement désactivé");
+        // }
+    });
+</script>
+{% endblock %}

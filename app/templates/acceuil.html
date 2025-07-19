@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+
+{% block title %}Tableau de bord - Gestion des camions{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Tableau de bord</h1>
+    
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0">Liste des Chauffeurs</h2>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 8%;">ID</th>
+                                    <th style="width: 20%;">Nom</th>
+                                    <th style="width: 20%;">Prénom</th>
+                                    <th style="width: 15%;">Permis</th>
+                                    <th style="width: 37%;">QR Code</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for chauffeur in chauffeurs %}
+                                <tr>
+                                    <td class="text-center">{{ chauffeur.id_chauffeur }}</td>
+                                    <td>{{ chauffeur.nom_chauffeur }}</td>
+                                    <td>{{ chauffeur.prenom_chauffeur|default:"-" }}</td>
+                                    <td class="text-center">{{ chauffeur.permis_chauffeur|default:"-" }}</td>
+                                    <td class="text-center">
+                                        {% if chauffeur.qr_code %}
+                                            <img src="{{ chauffeur.qr_code.url }}" alt="QR Code" class="img-fluid" style="max-width: 120px; height: auto;">
+                                        {% else %}
+                                            <span class="text-muted">Pas de QR Code</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4">Aucun chauffeur enregistré.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0">Statut des Camions</h2>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 5%;">ID</th>
+                                    <th style="width: 15%;">Chauffeur</th>
+                                    <th style="width: 15%;">Société</th>
+                                    <th style="width: 10%;">Matricule</th>
+                                    <th style="width: 8%;">Capacité</th>
+                                    <th style="width: 10%;">Entrée</th>
+                                    <th style="width: 10%;">Sortie</th>
+                                    <th style="width: 12%;">Heure entrée</th>
+                                    <th style="width: 15%;">Heure sortie</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for camion in camions %}
+                                <tr>
+                                    <td class="text-center">{{ camion.id_camion }}</td>
+                                    <td>
+                                        {% if camion.id_chauffeur %}
+                                            {{ camion.id_chauffeur.nom_chauffeur }} {{ camion.id_chauffeur.prenom_chauffeur|default:"" }}
+                                        {% else %}
+                                            <span class="text-muted">Non affecté</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ camion.nom_societe|default:"-" }}</td>
+                                    <td class="text-center">{{ camion.matricule_camion|default:"-" }}</td>
+                                    <td class="text-center">{{ camion.capacite|default:"-" }}</td>
+                                    <td class="text-center">{{ camion.date_entreeC|date:"d/m/Y"|default:"-" }}</td>
+                                    <td class="text-center">{{ camion.date_sortieC|date:"d/m/Y"|default:"-" }}</td>
+                                    <td class="text-center">
+                                        {% if camion.heure_entreeC %}
+                                            {{ camion.heure_entreeC|time:"H:i" }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if camion.heure_sortieC %}
+                                            {{ camion.heure_sortieC|time:"H:i" }}
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">En attente</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="9" class="text-center py-4">Aucun camion enregistré.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0">Liste des Prestataires</h2>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 8%;">ID</th>
+                                    <th style="width: 20%;">Nom</th>
+                                    <th style="width: 20%;">Adresse</th>
+                                    <th style="width: 15%;">Téléphone</th>
+                                    <th style="width: 15%;">Frais prestataire</th>
+                                    <th style="width: 37%;">QR Code</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prestataire in prestataires %}
+                                <tr>
+                                    <td class="text-center">{{ prestataire.id_prestataire }}</td>
+                                    <td>{{ prestataire.nom_prestataire }}</td>
+                                    <td>{{ prestataire.adresse_prestataire|default:"-" }}</td>
+                                    <td class="text-center">{{ prestataire.telephone_prestataire|default:"-" }}</td>
+                                    <td class="text-center">{{ prestataire.frais_prestataire|default:"-" }}</td>
+                                    <td class="text-center">
+                                        {% if prestataire.qr_code %}
+                                            <img src="{{ prestataire.qr_code.url }}" alt="QR Code" class="img-fluid" style="max-width: 120px; height: auto;">
+                                        {% else %}
+                                            <span class="text-muted">Pas de QR Code</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-4">Aucun prestataire enregistré.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0">Liste des Affectations</h2>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 8%;">ID</th>
+                                    <th style="width: 20%;">Chauffeur</th>
+                                    <th style="width: 20%;">Matricule camion</th>
+                                    <th style="width: 20%;">Nom société</th>
+                                    <th style="width: 15%;">Prestataire</th>
+                                    <th style="width: 37%;">QR Code</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for affectation in affectations %}
+                                <tr>
+                                    <td class="text-center">{{ affectation.id }}</td>
+                                    <td>{{ affectation.chauffeur.id_chauffeur }}  {{ affectation.chauffeur.nom_chauffeur }} {{ affectation.chauffeur.prenom_chauffeur }}</td>
+                                    <td>{{ affectation.camion.matricule_camion }}</td>
+                                    <td class="text-center">{{ affectation.camion.nom_societe }}</td>
+                                    <td class="text-center">{{ affectation.prestataire.nom_prestataire }}</td>
+                                    <td class="text-center">
+                                        {% if affectation.qr_code %}
+                                            <img src="{{ affectation.qr_code.url }}" alt="QR Code" class="img-fluid" style="max-width: 120px; height: auto;">
+                                        {% else %}
+                                            <span class="text-muted">Pas de QR Code</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">Aucune affectation enregistrée.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% if user.is_authenticated and user.get_is_admin == false %}
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0">Liste des Utilisateurs</h2>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 8%;">ID</th>
+                                    <th style="width: 20%;">username</th>
+                                    <th style="width: 20%;">password</th>
+                                    <th style="width: 15%;">is_admin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for utilisateur in utilisateurs %}
+                                <tr>
+                                    <td class="text-center">{{ utilisateur.id_user }}</td>
+                                    <td class="text-center">{{ utilisateur.username }}</td>
+                                    <td class="text-center">{{ utilisateur.password }}</td>
+                                    <td class="text-center">{{ utilisateur.is_admin }}</td>    
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4">Aucun utilisateur enregistré.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

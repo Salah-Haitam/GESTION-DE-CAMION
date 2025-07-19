@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Liste des Utilisateur{% endblock %}
+
+{% block content %}
+<h1>Liste des Utilisateur</h1>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-hover">
+        <thead class="table-primary">
+            <tr>
+                <th style="width: 8%;">ID</th>
+                <th style="width: 20%;"> Nom Utilisateur</th>
+                <th style="width: 15%;">Mot de passe</th>
+                <th style="width: 10%;">est un Admin?</th>
+                
+            </tr>
+        </thead>
+        <tbody>
+            {% for utilisateur in utilisateurs %}
+            <tr>
+                <td class="text-center">{{ utilisateur.id_user }}</td>
+                <td class="text-center">{{ utilisateur.username }}</td>
+                <td class="text-center">{{ utilisateur.password }}</td>
+                <td class="text-center">{{ utilisateur.is_admin }}</td>    
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center">Aucun Utilisateur trouvé.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Badge Chauffeur - {{ chauffeur.nom_chauffeur }} {{ chauffeur.prenom_chauffeur }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 15mm 10mm;
+        }
+    
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.5;
+        }
+    
+        .badge-container {
+            width: 21cm;
+            height: 14.85cm; /* Demi-page A4 verticale */
+            margin: 0 auto 20px auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 15mm;
+            box-sizing: border-box;
+            page-break-inside: avoid;
+            page-break-after: auto;
+            {% comment %} display:flex; {% endcomment %}
+        }
+    
+        .badge-header {
+            text-align: center;
+
+        }
+    
+        .badge-header h1 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 22pt;
+            text-transform: uppercase;
+        }
+        .badge-content1 {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2mm;
+            padding-top: 25px;
+        }
+        .badge-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2mm;
+            margin-left: 30px;
+            {% comment %} padding-top: 100px; {% endcomment %}
+        }
+    
+        .driver-info {
+            flex: 2;
+            min-width: 30%;
+            {% comment %} padding-top: 40px; {% endcomment %}
+        }
+    
+        .qr-section {
+            {% comment %} flex: 1; {% endcomment %}
+            display: flex;
+            justify-content: flex-start;
+            flex-direction: row-reverse;
+            flex-wrap: wrap;
+            margin-left: 300px;
+            {% comment %} flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; {% endcomment %}
+            {% comment %} border-left: 1px solid #eee;
+            padding-left: 10mm;
+            padding-top: 50px;
+            margin-right: 10px; {% endcomment %}
+        }
+    
+        .info-line {
+            margin: 6px 0;
+            font-size: 11pt;
+            padding: 8px 12px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+        }
+    
+        .info-line strong {
+            color: #2c3e50;
+            min-width: 140px;
+            {% comment %} display: inline-block; {% endcomment %}
+        }
+    
+        .qr-code {
+            max-width: 150px;
+            height: auto;
+            {% comment %} margin-top: 93px; {% endcomment %}
+            {% comment %} border: 1px solid #eee; {% endcomment %}
+            {% comment %} padding: 8px; {% endcomment %}
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    
+       
+    
+        .no-data {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+    
+        @media print {
+            body {
+                background: none;
+                margin: 0;
+                padding: 0;
+            }
+    
+            .badge-container {
+                box-shadow: none;
+                padding: 0;
+                margin: 0 auto;
+                width: 21cm;
+                height: 14.85cm;
+            }
+    
+            .no-print {
+                display: none;
+            }
+        }
+        .logo {
+            max-width: 100px;
+            height: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    {% load static %}
+    <div class="badge-container">
+        <div class="badge-header" style=" align-items: center; ">
+            <h1 style="margin: 0;">BADGE</h1>
+            <img src="{% static 'app/images/logo.png' %}" alt="Logo" class="logo" style="max-width: 150px; height: auto; margin: 0;">
+        </div>
+      <div class="badge-content1">
+        <div class="badge-content">
+            <div class="driver-info">
+                <div class="info-line">
+                    <strong>Nom :</strong> {{ chauffeur.nom_chauffeur }}
+                </div>
+                <div class="info-line">
+                    <strong>Prénom :</strong> {{ chauffeur.prenom_chauffeur }}
+                </div>
+                <div class="info-line">
+                    <strong>ID Chauffeur :</strong> {{ chauffeur.id_chauffeur }}
+                </div>   
+            </div>
+        </div>
+        <div class="qr-section">
+            {% if affectation and affectation.qr_code %}
+                <img src="{{ affectation.qr_code.url }}" alt="QR Code" class="qr-code">
+            {% elif chauffeur.qr_code  %}
+                <img src="{{ chauffeur.qr_code.url }}" alt="QR Code" class="qr-code">
+            {% else %}
+                <div class="info-line" style="text-align: center;">
+                    Aucun code QR d'affectation disponible
+                </div>
+            {% endif %}
+        </div>
+      </div>
+        {% comment %} <div class="badge-content">
+            <div class="driver-info">
+                <div class="info-line">
+                    <strong>Nom :</strong> {{ chauffeur.nom_chauffeur }}
+                </div>
+                <div class="info-line">
+                    <strong>Prénom :</strong> {{ chauffeur.prenom_chauffeur }}
+                </div>
+                <div class="info-line">
+                    <strong>ID Chauffeur :</strong> {{ chauffeur.id_chauffeur }}
+                </div>
+            </div> 
+        </div>
+        <div class="qr-section">
+            {% if chauffeur.qr_code %}
+                <img src="{{ chauffeur.qr_code.url }}" alt="QR Code" class="qr-code">
+            {% else %}
+                <div class="info-line" style="text-align: center;">
+                    Aucun QR code disponible
+                </div>
+            {% endif %}
+        </div> {% endcomment %}
+        
+       
+      
+    </div>
+    
+</body>
+</html>

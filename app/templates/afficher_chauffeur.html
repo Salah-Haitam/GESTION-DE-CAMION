@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Liste des Chauffeurs{% endblock %}
+
+{% block content %}
+<h1>Liste des Chauffeurs</h1>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-hover">
+        <thead class="table-primary">
+            <tr>
+                <th style="width: 8%;">ID</th>
+                <th style="width: 20%;">Nom</th>
+                <th style="width: 20%;">Prénom</th>
+                <th style="width: 15%;">Permis</th>
+                <th style="width: 37%;">QR Code</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for chauffeur in chauffeurs %}
+            <tr>
+                <td class="text-center">{{ chauffeur.id_chauffeur }}</td>
+                <td>{{ chauffeur.nom_chauffeur }}</td>
+                <td>{{ chauffeur.prenom_chauffeur }}</td>
+                <td class="text-center">{{ chauffeur.permis_chauffeur }}</td>
+                <td class="text-center">
+                    {% if chauffeur.qr_code %}
+                    <img src="{{ chauffeur.qr_code.url }}" alt="QR Code" class="img-fluid" style="max-width: 120px; height: auto;">
+                    {% else %}
+                    <span class="text-muted">Pas de QR Code</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center">Aucun chauffeur trouvé.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

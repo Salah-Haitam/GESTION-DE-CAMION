@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Accueil{% endblock %}
+
+{% block content %}
+    <div class="button-group">
+        <h1><span style="margin: 0 15px;">Bienvenue, {{ user.username }}!</span></h1>
+        <button><a href="{% url 'ajouter_chauffeur' %}">Ajouter Chauffeur</a></button>
+        <button><a href="{% url 'ajouter_camion' %}">Ajouter Camion</a></button>
+        <button><a href="{% url 'ajouter_prestataire' %}">Ajouter Prestataire</a></button>
+        <button><a href="{% url 'afficher_camions' %}">Liste Camions</a></button>
+        <button><a href="{% url 'afficher_chauffeur' %}">Liste Chauffeurs</a></button>
+        <button><a href="{% url 'afficher_prestataires' %}">Liste Prestataires</a></button>
+        <button><a href="/admin/">Admin</a></button>
+    </div>
+
+    <style>
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 300px;
+            margin: auto;
+            margin-top: 30px;
+        }
+
+        .button-group button {
+            background-color: #273c75;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .button-group button:hover {
+            background-color: #40739e;
+        }
+
+        .button-group button a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 15px;
+            display: block;
+        }
+    </style>
+
+    <script>
+        console.log("Page chargée avec succès !");
+    </script>
+{% endblock %}
+
+{% comment %} <!DOCTYPE html>
+<html>
+<head>
+    <title>Message</title>
+</head>
+<body>
+
+    <h1>{{ message }}</h1> 
+    <a href="/ajouter_chauffeur/">Ajouter un autre chauffeur</a>
+</body>
+</html>
+</body>
+</html> {% endcomment %}
+{% comment %} <!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        a:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ message }}</h1>
+    <a href="/ajouter_chauffeur/">Ajouter un autre chauffeur</a>
+    <script>
+        // Exemple de script JavaScript
+        console.log("Page chargée avec succès !");
+    </script>
+</body>
+</html> {% endcomment %}

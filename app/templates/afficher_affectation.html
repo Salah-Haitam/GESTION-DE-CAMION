@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Liste des Affectations{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Liste des Affectations</h1>
+    
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead class="table-primary">
+                <tr>
+                    <th>ID</th>
+                    <th>Chauffeur</th>
+                    <th>Camion</th>
+                    <th>Matricule</th>
+                    <th>Prestataire</th>
+                    <th>QR Code affectation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for affectation in affectations %}
+                <tr>
+                    <td>{{ affectation.id }}</td>
+                    <td>{{ affectation.chauffeur.nom_chauffeur }} {{ affectation.chauffeur.prenom_chauffeur }}</td>
+                    <td>{{ affectation.camion.nom_societe }}</td>
+                    <td>{{ affectation.camion.matricule_camion }}</td>
+                    <td>
+                        {% if affectation.prestataire %}
+                            {{ affectation.prestataire.nom_prestataire }}
+                        {% else %}
+                            Non spécifié
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if affectation.qr_code %}
+                        <img src="{{ affectation.qr_code.url }}" alt="QR Code" class="img-fluid" style="max-width: 120px; height: auto;">
+                        {% else %}
+                        <span class="text-muted">Pas de QR Code</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">Aucune affectation trouvée.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table th {
+        vertical-align: middle;
+        text-align: center;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+    .img-qr {
+        max-width: 100px;
+        height: auto;
+    }
+</style>
+{% endblock %}

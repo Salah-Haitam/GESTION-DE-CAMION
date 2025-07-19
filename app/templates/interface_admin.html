@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Interface Administrateur{% endblock %}
+
+{% block content %}
+<style>
+  body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f6fa;
+      color: #2f3640;
+  }
+
+  h2 {
+      margin-top: 40px;
+      color: #273c75;
+      border-bottom: 2px solid #dcdde1;
+      padding-bottom: 5px;
+  }
+
+  table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border-radius: 5px;
+      overflow: hidden;
+  }
+
+  th, td {
+      text-align: left;
+      padding: 12px 15px;
+      border-bottom: 1px solid #ecf0f1;
+  }
+
+  th {
+      background-color: #40739e;
+      color: white;
+  }
+
+  tr:hover {
+      background-color: #f1f2f6;
+  }
+
+  a {
+      text-decoration: none;
+      color: #3498db;
+      font-weight: bold;
+  }
+
+  a:hover {
+      color: #2980b9;
+  }
+
+  .add-button {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 8px 16px;
+      background-color: #44bd32;
+      color: white;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+  }
+
+  .add-button:hover {
+      background-color: #2ecc71;
+  }
+
+  .action-link {
+      background-color: #f39c12;
+      padding: 6px 12px;
+      border-radius: 3px;
+      color: white;
+  }
+
+  .action-link:hover {
+      background-color: #e67e22;
+  }
+</style>
+
+<h2>Chauffeurs</h2>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Nom</th>
+        <th>Prénom</th>
+        <th>Actions</th>
+    </tr>
+    {% for ch in chauffeurs %}
+    <tr>
+        <td>{{ ch.id_chauffeur }}</td>
+        <td>{{ ch.nom_chauffeur }}</td>
+        <td>{{ ch.prenom_chauffeur }}</td>
+        <td>
+            <a class="action-link" href="{% url 'modifier_chauffeur' ch.id_chauffeur %}">Modifier</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+<a class="add-button" href="{% url 'ajouter_chauffeur' %}">➕ Ajouter Chauffeur</a>
+
+<h2>Camions</h2>
+<table>
+    <tr>
+        <th>Matricule</th>
+        <th>Chauffeur</th>
+        <th>Société</th>
+        <th>Capacité</th>
+        <th>Actions</th>
+    </tr>
+    {% for cm in camions %}
+    <tr>
+        <td>{{ cm.matricule_camion }}</td>
+        <td>{{ cm.id_chauffeur }}</td>
+        <td>{{ cm.nom_societe }}</td>
+        <td>{{ cm.capacite }}</td>
+        <td>
+            <a class="action-link" href="{% url 'modifier_camion' cm.id_camion %}">Modifier</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+<a class="add-button" href="{% url 'ajouter_camion' %}">➕ Ajouter Camion</a>
+
+<h2>Prestataires</h2>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Nom</th>
+        
+        <th>Actions</th>
+    </tr>
+    {% for pr in prestataires %}
+    <tr>
+        <td>{{ pr.id_prestataire }}</td>
+        <td>{{ pr.nom_prestataire }}</td>
+        <td>
+            <a class="action-link" href="{% url 'modifier_prestataire' pr.id_prestataire %}">Modifier</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+<a class="add-button" href="{% url 'ajouter_prestataire' %}">➕ Ajouter Prestataire</a>
+{% if user.is_staff %}
+<h2>Utilisateurs</h2>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Nom Utilisateur</th>
+        <th>Mot de passe</th>
+        <th>Est un Admin?</th>
+        <th>Actions</th>
+    </tr>
+    {% for utilisateur in utilisateurs %}
+    <tr>
+        <td>{{ utilisateur.id_user }}</td>
+        <td>{{ utilisateur.username }}</td>
+        <td>{{ utilisateur.password }}</td>
+        <td>{{ utilisateur.is_admin }}</td>
+        <td>
+            <a class="action-link" href="{% url 'modifier_utilisateur' utilisateur.id_user %}">Modifier</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<a class="add-button" href="{% url 'ajouter_utilisateur' %}">➕ Ajouter Utilisateur</a>
+{% endif%}
+{% endblock %}

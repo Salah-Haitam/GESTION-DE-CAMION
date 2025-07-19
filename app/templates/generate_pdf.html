@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: sans-serif; }
+        .qr { width: 150px; }
+    </style>
+</head>
+<body>
+    <h1>Ticket Chauffeur</h1>
+    <p><strong>ID</strong> {{ chauffeur.id_chauffeur  }}</p>
+    <p><strong>Nom :</strong> {{ chauffeur.nom_chauffeur }}</p>
+    <p><strong>Prénom :</strong> {{ chauffeur.prenom_chauffeur  }}</p>
+    {% if camion %}
+        <p><strong>Camion actuel :</strong> {{ camion.matricule }}</p>
+    {% else %}
+        <p><strong>Camion actuel :</strong> Aucun camion affecté</p>
+    {% endif %}
+    <h3>QR Code chauffeur :</h3>
+    <img class="qr" src="data:image/png;base64,{{ qr_code }}">
+</body>
+</html>
+
+{% comment %} <!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: sans-serif; }
+        h1 { color: #336699; }
+    </style>
+</head>
+<body>
+    <h1>Bonjour {{ nom }}</h1>
+    <p>Voici votre PDF généré avec Django et WeasyPrint.</p>
+</body>
+</html> {% endcomment %}

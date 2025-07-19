@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Caméra Simple</title>
+</head>
+<body>
+    <h1>Test Caméra Mobile</h1>
+    <video id="video" width="320" height="240" autoplay></video>
+    <div id="status">Chargement...</div>
+    
+    <script>
+        const status = document.getElementById('status');
+        const video = document.getElementById('video');
+        
+        // Afficher les informations du navigateur
+        status.innerHTML = `
+            <p>Navigateur: ${navigator.userAgent}</p>
+            <p>Plateforme: ${navigator.platform}</p>
+            <p>MediaDevices supporté: ${!!navigator.mediaDevices}</p>
+        `;
+        
+        // Essayer d'accéder à la caméra
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    video.srcObject = stream;
+                    status.innerHTML += '<p style="color:green">Caméra détectée avec succès!</p>';
+                })
+                .catch(function(err) {
+                    status.innerHTML += `<p style="color:red">Erreur: ${err.name} - ${err.message}</p>`;
+                });
+        } else {
+            status.innerHTML += '<p style="color:red">Votre navigateur ne supporte pas l\'accès à la caméra</p>';
+        }
+    </script>
+</body>
+</html>
+{% comment %} <!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <title>Test Caméra Mobile</title>
+    <script>
+        // Fonction de débogage
+        function debugLog(message, data = '') {
+            console.log(`[DEBUG] ${message}`, data);
+            const debugDiv = document.getElementById('debug-info');
+            if (debugDiv) {
+                debugDiv.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message} ${JSON.stringify(data)}</div>`;
+                debugDiv.scrollTop = debugDiv.scrollHeight;
+            }
+        }
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 24px;
+            margin: 10px 0 20px;
+        }
+        #video-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto 20px;
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #video {
+            display: block;
+            width: 100%;
+            height: auto;
+            transform: scaleX(-1); /* Miroir pour une meilleure expérience utilisateur */
+        }
+        #status {
+            padding: 12px;
+            margin: 0 0 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 14px;
+        }
+        .error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .status-update {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0.5; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .button-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+            padding: 10px 0;
+        }
+        
+        .permission-info {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .permission-info ol {
+            margin: 10px 0 0 20px;
+            padding: 0;
+        }
+        
+        .permission-info li {
+            margin-bottom: 8px;
+        }
+        
+        .debug-info {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        .button-icon {
+            margin-right: 8px;
+        }
+        
+        .button-text {
+            pointer-events: none;
+        }
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        #startButton {
+            background-color: #007bff;
+            color: white;
+        }
+        #startButton:active {
+            background-color: #0056b3;
+            transform: scale(0.98);
+        }
+        #stopButton {
+            background-color: #dc3545;
+            color: white;
+        }
+        #stopButton:active {
+            background-color: #a71d2a;
+            transform: scale(0.98);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 20px;
+            }
+            button {
+                width: 100%;
+                padding: 15px;
+            }
+            .button-container {
+                flex-direction: column;
+                width: 100%;
+                max-width: 300px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test de Caméra Mobile</h1>
+        
+        <div id="video-container">
+            <video id="video" autoplay playsinline></video>
+        </div>
+        
+        <div id="status" class="info">Initialisation en cours...</div>
+        
+        <div class="button-container">
+            <button id="startButton">
+                <span class="button-icon">📷</span>
+                <span class="button-text">Démarrer</span>
+            </button>
+            <button id="stopButton" disabled>
+                <span class="button-icon">⏹️</span>
+                <span class="button-text">Arrêter</span>
+            </button>
+        </div>
+        
+        <div class="permission-info">
+            <p><strong>Si la caméra ne démarre pas :</strong></p>
+            <ol>
+                <li>Vérifiez que vous avez autorisé l'accès à la caméra</li>
+                <li>Assurez-vous d'être en HTTPS (obligatoire sur certains navigateurs)</li>
+                <li>Rafraîchissez la page et réessayez</li>
+            </ol>
+        </div>
+        
+        <div id="debug-info" class="debug-info"></div>
+    </div>
+
+    <script>
+        // Éléments du DOM
+        const video = document.getElementById('video');
+        const statusDiv = document.getElementById('status');
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        let stream = null;
+
+        // Fonction de mise à jour du statut
+        function updateStatus(message, isError = false) {
+            debugLog('Mise à jour du statut:', { message, isError });
+            statusDiv.textContent = message;
+            statusDiv.className = isError ? 'error' : 'success';
+            
+            // Ajouter la classe d'animation
+            statusDiv.classList.add('status-update');
+            setTimeout(() => statusDiv.classList.remove('status-update'), 500);
+        }
+
+        // Vérifier si le navigateur supporte la caméra
+        function checkCameraSupport() {
+            const isSupported = !!(navigator.mediaDevices && 
+                                 navigator.mediaDevices.getUserMedia);
+            
+            debugLog('Support caméra:', isSupported);
+            if (!isSupported) {
+                updateStatus('Votre navigateur ne supporte pas l\'accès à la caméra.', true);
+            }
+            return isSupported;
+        }
+
+        // Obtenir les contraintes de la caméra
+        function getCameraConstraints() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            debugLog('Détection appareil mobile:', isMobile);
+            
+            // Contraintes par défaut
+            const constraints = {
+                video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    facingMode: 'environment', // Caméra arrière par défaut
+                    frameRate: { ideal: 30 }
+                },
+                audio: false
+            };
+
+            // Ajustements pour mobile
+            if (isMobile) {
+                constraints.video.facingMode = 'environment';
+            }
+
+            debugLog('Contraintes caméra:', constraints);
+            return constraints;
+        }
+
+        // Démarrer la caméra
+        async function startCamera() {
+            if (!checkCameraSupport()) return;
+            
+            updateStatus('Démarrage de la caméra...');
+            startButton.disabled = true;
+            stopButton.disabled = false;
+
+            try {
+                const constraints = getCameraConstraints();
+                debugLog('Tentative de démarrage de la caméra avec contraintes:', constraints);
+                
+                // Essayer d'abord avec la caméra arrière
+                stream = await navigator.mediaDevices.getUserMedia(constraints)
+                    .catch(async (err) => {
+                        debugLog('Erreur caméra arrière, tentative avec caméra avant', err);
+                        constraints.video.facingMode = 'user';
+                        return navigator.mediaDevices.getUserMedia(constraints);
+                    });
+
+                debugLog('Flux caméra obtenu:', stream);
+                video.srcObject = stream;
+                
+                // Gérer les événements de la vidéo
+                video.onloadedmetadata = () => {
+                    debugLog('Métadonnées vidéo chargées');
+                    video.play().catch(err => {
+                        debugLog('Erreur lecture vidéo:', err);
+                        updateStatus('Erreur lors du démarrage de la vidéo', true);
+                    });
+                };
+
+                video.onplay = () => {
+                    debugLog('Vidéo en cours de lecture');
+                    updateStatus('Caméra active');
+                };
+
+                video.onerror = (err) => {
+                    debugLog('Erreur vidéo:', err);
+                    updateStatus('Erreur avec le flux vidéo', true);
+                };
+
+            } catch (err) {
+                debugLog('Erreur critique:', err);
+                let errorMessage = 'Erreur: ';
+                
+                if (err.name === 'NotAllowedError') {
+                    errorMessage = 'Permission refusée. Veuillez autoriser l\'accès à la caméra.';
+                } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                    errorMessage = 'Aucune caméra trouvée.';
+                } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                    errorMessage = 'Impossible d\'accéder à la caméra. Elle est peut-être déjà utilisée.';
+                } else if (err.name === 'OverconstrainedError' || err.name === 'ConstraintNotSatisfiedError') {
+                    errorMessage = 'Configuration de la caméra non supportée.';
+                } else {
+                    errorMessage += err.message || 'Erreur inconnue';
+                }
+                
+                updateStatus(errorMessage, true);
+                startButton.disabled = false;
+                stopButton.disabled = true;
+            }
+        }
+
+        // Arrêter la caméra
+        function stopCamera() {
+            debugLog('Arrêt de la caméra...');
+            
+            if (stream) {
+                stream.getTracks().forEach(track => {
+                    debugLog('Arrêt de la piste:', track.kind);
+                    track.stop();
+                });
+                stream = null;
+            }
+            
+            if (video) {
+                video.pause();
+                video.srcObject = null;
+            }
+            
+            updateStatus('Caméra arrêtée');
+            startButton.disabled = false;
+            stopButton.disabled = true;
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            debugLog('Page chargée', {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                maxTouchPoints: navigator.maxTouchPoints,
+                cookieEnabled: navigator.cookieEnabled,
+                mediaDevices: !!navigator.mediaDevices,
+                permissions: !!navigator.permissions
+            });
+
+            // Vérifier les permissions
+            if (navigator.permissions) {
+                navigator.permissions.query({ name: 'camera' })
+                    .then(permissionStatus => {
+                        debugLog('Statut permission caméra:', permissionStatus.state);
+                        permissionStatus.onchange = () => {
+                            debugLog('Changement de permission caméra:', permissionStatus.state);
+                        };
+                    })
+                    .catch(err => {
+                        debugLog('Erreur vérification permission:', err);
+                    });
+            }
+
+            // Démarrer automatiquement la caméra
+            startCamera().catch(console.error);
+        });
+
+        // Gestionnaires d'événements
+        startButton.addEventListener('click', startCamera);
+        stopButton.addEventListener('click', stopCamera);
+
+        // Nettoyer à la fermeture de la page
+        window.addEventListener('beforeunload', stopCamera);
+        window.addEventListener('pagehide', stopCamera);
+    </script>
+</body>
+</html> {% endcomment %}

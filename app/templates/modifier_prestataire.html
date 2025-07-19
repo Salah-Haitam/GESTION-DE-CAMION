@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Modifier Prestataire{% endblock %}
+
+{% block content %}
+
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Enregistrer</button>
+  <button type="submit" name="delete" 
+          onclick="return confirm('Voulez-vous vraiment supprimer ce prestataire ?');">
+    Supprimer
+  </button>
+</form>
+{% endblock %}

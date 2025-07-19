@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Camions en attente de sortie{% endblock %}
+
+{% block content %}
+<h1>Camions en attente de sortie</h1>
+
+<!-- Formulaire de recherche -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Rechercher un camion en attente</h5>
+        <form method="get" action=".">
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Rechercher</button>
+        </form>
+        
+        {% if camions|length == 1 %}
+            <div class="alert alert-info mt-3">
+                <i class="bi bi-info-circle"></i> 1 camion trouvé. Vous pouvez enregistrer sa sortie directement depuis le tableau ci-dessous.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-hover">
+        <thead class="table-primary">
+            <tr>
+                <th style="width: 5%;">ID</th>
+                <th style="width: 12%;">Chauffeur</th>
+                <th style="width: 15%;">Société</th>
+                <th style="width: 10%;">Matricule</th>
+                <th style="width: 8%;">Capacité</th>
+                <th style="width: 10%;">Date entrée</th>
+                <th style="width: 10%;">Heure entrée</th>
+                <th style="width: 20%;">QR Code</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for camion in camions %}
+            <tr>
+                <td class="text-center">{{ camion.id_camion }}</td>
+                <td>
+                    {% if camion.id_chauffeur %}
+                        {{ camion.id_chauffeur.nom_chauffeur }} {{ camion.id_chauffeur.prenom_chauffeur|default:'' }}
+                        <small class="d-block text-muted">ID: {{ camion.id_chauffeur.id_chauffeur }}</small>
+                    {% else %}
+                        <span class="text-muted">Non affecté</span>
+                    {% endif %}
+                </td>
+                <td>{{ camion.nom_societe }}</td>
+                <td class="text-center">{{ camion.matricule_camion }}</td>
+                <td class="text-center">{{ camion.capacite }}</td>
+                <td class="text-center">{{ camion.date_entreeC|date:"d/m/Y" }}</td>
+                <td class="text-center">{{ camion.heure_entreeC|time:"H:i" }}</td>
+                <td class="text-center">
+                    {% if camion.id_chauffeur and camion.id_chauffeur.qr_code %}
+                        <img src="{{ camion.id_chauffeur.qr_code.url }}" alt="QR Code" class="img-fluid" style="max-width: 120px; height: auto;">
+                    {% else %}
+                        <span class="text-muted">Non disponible</span>
+                    {% endif %}
+                </td>
+                
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" class="text-center">Aucun camion en attente de sortie.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- JS simple -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        console.log("Page des camions non sortis chargée avec succès !");
+        
+        // Désactivé le rechargement automatique
+        // var successMessages = document.querySelectorAll('.alert-success');
+        // if (successMessages.length > 0) {
+        //     console.log("Message de succès détecté, rechargement désactivé");
+        // }
+    });
+</script>
+{% endblock %}

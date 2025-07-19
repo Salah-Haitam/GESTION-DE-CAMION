@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="container mt-4">
+        <h2>Ajouter un camion</h2>
+        <form method="post" id="camion-form" novalidate>
+            {% csrf_token %}
+            
+            <!-- Afficher les erreurs globales du formulaire -->
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+    
+            <!-- Champs du formulaire camion -->
+            {{ form.as_p }}
+    
+            <!-- Checkbox pour nouveau prestataire -->
+            <div class="form-group form-check">
+                <input type="checkbox" class="form-check-input" id="creer_nouveau_prestataire" 
+                       name="creer_nouveau_prestataire">
+                <label class="form-check-label" for="creer_nouveau_prestataire">
+                    Créer un nouveau prestataire
+                </label>
+            </div>
+    
+            <!-- Champs du nouveau prestataire (cachés par défaut) -->
+            <div id="nouveau-prestataire-fields" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                <h5>Nouveau Prestataire</h5>
+                {{ formf.as_p }}
+            </div>
+    
+            <button type="submit" class="btn btn-primary">Ajouter</button>
+            <a href="{% url 'afficher_camions' %}" class="btn btn-secondary">Annuler</a>
+        </form>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkbox = document.getElementById('creer_nouveau_prestataire');
+        const nouveauPrestataireFields = document.getElementById('nouveau-prestataire-fields');
+        const selectPrestataire = document.querySelector('select[name="id_prestataire"]');
+        
+        function toggleFields() {
+            if (checkbox.checked) {
+                nouveauPrestataireFields.style.display = 'block';
+                if (selectPrestataire) {
+                    selectPrestataire.disabled = true;
+                    selectPrestataire.required = false;
+                }
+            } else {
+                nouveauPrestataireFields.style.display = 'none';
+                if (selectPrestataire) {
+                    selectPrestataire.disabled = false;
+                    selectPrestataire.required = true;
+                }
+            }
+        }
+        
+        // Initialisation
+        toggleFields();
+        
+        // Écouteur d'événement
+        checkbox.addEventListener('change', toggleFields);
+    });
+    </script>
+</div>
+
+<style>
+/* Style optionnel pour améliorer l'apparence */
+.form-group {
+    margin-bottom: 1rem;
+}
+.card {
+    margin-bottom: 1.5rem;
+}
+</style>
+
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% comment %} {% extends 'base.html' %}
+
+{% block title %}Ajouter un Camion{% endblock %}
+
+{% block content %}
+    <h2>Formulaire - Ajouter un Camion</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Ajouter</button>
+    </form>
+{% endblock %} {% endcomment %}
