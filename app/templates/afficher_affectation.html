@@ -12,8 +12,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Chauffeur</th>
-                    <th>Camion</th>
-                    <th>Matricule</th>
+                    <th>Matricule Camion</th>
                     <th>Prestataire</th>
                     <th>QR Code affectation</th>
                 </tr>
@@ -23,7 +22,6 @@
                 <tr>
                     <td>{{ affectation.id }}</td>
                     <td>{{ affectation.chauffeur.nom_chauffeur }} {{ affectation.chauffeur.prenom_chauffeur }}</td>
-                    <td>{{ affectation.camion.nom_societe }}</td>
                     <td>{{ affectation.camion.matricule_camion }}</td>
                     <td>
                         {% if affectation.prestataire %}

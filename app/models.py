@@ -6,6 +6,9 @@ import qrcode
 from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
+from django.core.validators import MinValueValidator
+import requests
+from geopy.distance import geodesic
 
 
 
@@ -78,65 +81,9 @@ class chauffeur(models.Model):
     @property
     def get_chauffeur(self):
         return self.chauffeur
-    def save(self, *args, **kwargs):
-        # Vérifier si c'est une nouvelle instance
-        is_new = self._state.adding
-    
-        # Sauvegarder d'abord pour obtenir un ID
-        super().save(*args, **kwargs)
-    
-        # Générer les données à encoder
-        data = f"ID: {self.id_chauffeur}\n" \
-           f"Nom: {self.nom_chauffeur}\n" \
-           f"Prénom: {self.prenom_chauffeur}\n" \
-           f"Permis: {self.permis_chauffeur}\n"
-    
-        # Ajouter les informations du prestataire si il existe
-        if self.prestataire:
-            data += f"\nPrestataire: {self.prestataire.nom_prestataire}\n" \
-                f"Adresse: {self.prestataire.adresse_prestataire}\n" \
-                f"Téléphone: {self.prestataire.telephone_prestataire}\n" \
-                f"Frais: {self.prestataire.frais_prestataire}\n" \
-                f"Camion: {self.camion_actuel().matricule_camion}\n"\
-                f"Nom Societe: {self.camion_actuel().nom_societe}\n"
-
-        # Créer le QR code
-        qr = qrcode.make(data)
-        buffer = BytesIO()
-        qr.save(buffer, format='PNG')
-        file_name = f"qr_{self.nom_chauffeur}_{self.prenom_chauffeur}.png"
-        self.qr_code.save(file_name, File(buffer), save=False)
-    
-        # Sauvegarder à nouveau pour mettre à jour le QR code
-        super().save(*args, **kwargs)
     def __str__(self):
-        return f"{self.id_chauffeur} - {self.nom_chauffeur} {self.prenom_chauffeur}"
-    # def save(self, *args, **kwargs):
-    #     # Génère les données à encoder
-    #     data = f"ID: {self.id_chauffeur}\n" \
-    #        f"Nom: {self.nom_chauffeur}\n" \
-    #        f"Prénom: {self.prenom_chauffeur}\n" \
-    #        f"Permis: {self.permis_chauffeur}\n"
-           
-        
-    #     # Ajoute les informations du prestataire si il existe
-    #     if self.prestataire:
-    #         data += f"\nPrestataire: {self.prestataire.nom_prestataire}\n" \
-    #             f"Adresse: {self.prestataire.adresse_prestataire}\n" \
-    #             f"Téléphone: {self.prestataire.telephone_prestataire}\n" \
-    #             f"Frais: {self.prestataire.frais_prestataire}"
-        
-    #     # Crée le QR code
-    #     qr = qrcode.make(data)
-    #     buffer = BytesIO()
-    #     qr.save(buffer, format='PNG')
-    #     file_name = f"qr_{self.nom_chauffeur}_{self.prenom_chauffeur}.png"
-    #     self.qr_code.save(file_name, File(buffer), save=False)
-
-    #     super().save(*args, **kwargs)
+        return f"{self.nom_chauffeur} {self.prenom_chauffeur}"
     
-    # def __str__(self):
-    #     return f"{self.id_chauffeur} - {self.nom_chauffeur} {self.prenom_chauffeur}"
 
 class camion(models.Model):
     id_camion = models.AutoField(primary_key=True)
@@ -257,7 +204,7 @@ class Utilisateur(models.Model):
     username = models.CharField(max_length=150, unique=True)
     password = models.CharField(max_length=128)
     is_admin = models.BooleanField(default=False)
-
+    site = models.ForeignKey('site', on_delete=models.CASCADE, null=True, blank=True)
     def get_is_admin(self):
         return self.is_admin
     def get_username(self):
@@ -291,35 +238,142 @@ class EntreeSortie(models.Model):
             elif self.date_sortie == self.date_entree and self.heure_sortie == self.heure_entree:
                 raise ValidationError('La date et l\'heure de sortie ne peuvent pas être identiques à la date et l\'heure d\'entrée')
 
+class site(models.Model):
+    id_site = models.AutoField(primary_key=True)
+    nom_site = models.CharField(max_length=150)
+    adresse_site = models.CharField(max_length=150)
+    telephone_site = models.CharField(max_length=11)
+
+    def __str__(self):
+        return self.nom_site
     
+
+class Facture(models.Model):
+    id_facture = models.AutoField(primary_key=True)
+    affectation = models.ForeignKey('Affectation', on_delete=models.CASCADE, related_name='factures')
+    poids_marchandise = models.FloatField(validators=[MinValueValidator(0.1)], help_text="Poids en tonnes")
+    destination = models.CharField(max_length=200)
     
+    # Coordonnées de départ (position actuelle GPS)
+    latitude_depart = models.FloatField(null=True, blank=True, help_text="Laisser vide pour utiliser la position GPS actuelle")
+    longitude_depart = models.FloatField(null=True, blank=True, help_text="Laisser vide pour utiliser la position GPS actuelle")
+    
+    # Coordonnées de destination (automatiquement calculées)
+    latitude_destination = models.FloatField(null=True, blank=True, help_text="Rempli automatiquement à partir de l'adresse de destination")
+    longitude_destination = models.FloatField(null=True, blank=True, help_text="Rempli automatiquement à partir de l'adresse de destination")
+    
+    # Distance calculée automatiquement
+    distance_km = models.FloatField(null=True, blank=True, default=0, help_text="Distance en kilomètres, calculée automatiquement")
+    
+    frais_marchandise = models.DecimalField(max_digits=10, decimal_places=2, editable=False)
+    prix_par_km = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    prix_par_tonne = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    date_facture = models.DateField(auto_now_add=True)
+    montant_total = models.DecimalField(max_digits=10, decimal_places=2, editable=False)
 
-# class Marchandise(models.Model):
-#     id_marchandise = models.AutoField(primary_key=True)
-#     id_chauffeur = models.ForeignKey('chauffeur', on_delete=models.CASCADE)
-#     id_camion = models.ForeignKey('camion', on_delete=models.CASCADE)
-#     nom_marchandise = models.CharField(max_length=200)
-#     poids_marchandise = models.FloatField()
-#     destination_marchandise = models.CharField(max_length=200)
-#     frais_marchandise = models.DecimalField(max_digits=10, decimal_places=2)
+    class Meta:
+        ordering = ['-date_facture']
+        verbose_name = 'Facture'
+        verbose_name_plural = 'Factures'
 
-#     from .models import camion
-#     for camion in camion.objects.all():
-#         if camion.capacite < self.poids_marchandise:
-#             raise ValueError("Le poids de la marchandise est supérieur à la capacité du camion")
+    def __str__(self):
+        return f"Facture {self.id_facture} - {self.affectation} - {self.date_facture}"
 
-#     def Calculer_frais(self,poids_marchandise,prix_par_tonne,distance,prix_par_km):
-#         if poids_marchandise > self.id_camion.capacite:
-#             raise ValueError("Le poids de la marchandise est supérieur à la capacité du camion")
-#         elif poids_marchandise <= self.id_camion.capacite:
-#             self.frais_marchandise = (poids_marchandise * prix_par_tonne) + (distance * prix_par_km)
-#             return self.frais_marchandise
+    def clean(self):
+        super().clean()
+        if self.poids_marchandise > self.affectation.camion.capacite:
+            raise ValidationError({
+                'poids_marchandise': f"Le poids ({self.poids_marchandise} t) dépasse la capacité du camion ({self.affectation.camion.capacite} t)"
+            })
+
+    def geocoder_destination(self):
+        """Géocode l'adresse de destination pour obtenir les coordonnées"""
+        if not self.destination:
+            return None, None
+            
+        try:
+            # Utilisation de l'API Nominatim (OpenStreetMap) - gratuite
+            url = f"https://nominatim.openstreetmap.org/search?q={self.destination}&format=json&limit=1"
+            headers = {'User-Agent': 'YourAppName/1.0'}
+            response = requests.get(url, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    lat = float(data[0]['lat'])
+                    lon = float(data[0]['lon'])
+                    return lat, lon
+        except Exception as e:
+            print(f"Erreur géocodage: {e}")
         
+        return None, None
+
+    def calculer_distance(self):
+        """Calcule la distance entre les coordonnées de départ et de destination"""
+        if all([self.latitude_depart, self.longitude_depart, 
+                self.latitude_destination, self.longitude_destination]):
+            
+            depart = (self.latitude_depart, self.longitude_depart)
+            destination = (self.latitude_destination, self.longitude_destination)
+            
+            # Calcul de la distance en kilomètres
+            distance = geodesic(depart, destination).kilometers
+            return round(distance, 2)
         
-# #     def __str__(self):
-# #         return f"{self.nom_marchandise} ({self.poids_marchandise} kg)"
+        return 0
 
+    def save(self, *args, **kwargs):
+        # Géocoder la destination si pas encore fait
+        if self.destination and not (self.latitude_destination and self.longitude_destination):
+            try:
+                lat, lon = self.geocoder_destination()
+                if lat and lon:
+                    self.latitude_destination = lat
+                    self.longitude_destination = lon
+            except Exception as e:
+                print(f"Erreur lors du géocodage: {e}")
 
+        # Calculer la distance si les coordonnées sont disponibles
+        try:
+            if all([self.latitude_depart, self.longitude_depart, 
+                   self.latitude_destination, self.longitude_destination]):
+                self.distance_km = self.calculer_distance()
+            else:
+                self.distance_km = 0
+        except Exception as e:
+            print(f"Erreur lors du calcul de la distance: {e}")
+            self.distance_km = 0
 
-# class Bon_Livraison(models.Model):
-#     id_bon = models.AutoField(primary_key=True)
+        # Calculer les frais même si la distance est 0
+        try:
+            self.calculer_frais()
+        except Exception as e:
+            print(f"Erreur lors du calcul des frais: {e}")
+            self.frais_marchandise = 0
+            self.montant_total = 0
+
+        try:
+            self.full_clean()
+        except ValidationError as e:
+            print(f"Erreur de validation: {e}")
+            raise
+
+        super().save(*args, **kwargs)
+
+    def calculer_frais(self):
+        """Calcule automatiquement les frais et le montant total de la facture."""
+        if not all([self.poids_marchandise, self.prix_par_tonne, self.prix_par_km]):
+            return
+
+        # Calcul des frais de transport basé sur la distance GPS
+        distance = self.distance_km or 0
+        frais_transport = distance * float(self.prix_par_km)
+
+        # Calcul des frais de marchandise
+        frais_marchandise = float(self.poids_marchandise) * float(self.prix_par_tonne)
+
+        from decimal import Decimal, ROUND_HALF_UP
+        self.frais_marchandise = Decimal(frais_marchandise).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        montant_total = Decimal(frais_marchandise + frais_transport).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        self.montant_total = montant_total
+

@@ -48,11 +48,15 @@
             {% if show_badge and chauffeur %}
             <div class="badge-container">
                 <div class="text-center mb-4">
-                    {% if chauffeur.qr_code %}
-                        <img src="{{ chauffeur.qr_code.url }}" class="img-fluid qr-code" alt="QR Code">
-                    {% else %}
-                        <div class="alert alert-warning">Aucun QR code disponible</div>
-                    {% endif %}
+                    <div class="qr-section">
+                        {% if affectation and affectation.qr_code %}
+                            <img src="{{ affectation.qr_code.url }}" alt="QR Code" class="qr-code">
+                        {% else %}
+                            <div class="info-line" style="text-align: center;">
+                                Aucun code QR d'affectation disponible
+                            </div>
+                        {% endif %}
+                    </div>
                     
                     <h3 class="mb-3">{{ chauffeur.nom_chauffeur }} {{ chauffeur.prenom_chauffeur }}</h3>
                     

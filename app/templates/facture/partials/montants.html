@@ -1,0 +1,46 @@
+{% if valid %}
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Détails du calcul</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Pour ce trajet</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <td>Distance :</td>
+                        <td class="text-end">{{ distance|floatformat:2 }} km</td>
+                    </tr>
+                    <tr>
+                        <td>Frais de transport :</td>
+                        <td class="text-end">{{ frais_transport|floatformat:2 }} MAD</td>
+                    </tr>
+                    <tr>
+                        <td>Frais de marchandise :</td>
+                        <td class="text-end">{{ frais_marchandise|floatformat:2 }} MAD</td>
+                    </tr>
+                    <tr class="table-primary fw-bold">
+                        <td>Total pour ce trajet :</td>
+                        <td class="text-end">{{ total|floatformat:2 }} MAD</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6>Total pour ce camion</h6>
+                <div class="alert alert-info">
+                    <p class="mb-0">
+                        Montant total facturé pour ce camion :
+                        <span class="fw-bold fs-4 d-block mt-2">{{ total_camion|floatformat:2 }} MAD</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Veuillez sélectionner une affectation et renseigner les informations nécessaires pour voir les calculs.
+</div>
+{% endif %}

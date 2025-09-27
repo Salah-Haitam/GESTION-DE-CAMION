@@ -13,6 +13,7 @@
                 <th style="width: 20%;"> Nom Utilisateur</th>
                 <th style="width: 15%;">Mot de passe</th>
                 <th style="width: 10%;">est un Admin?</th>
+                <th style="width: 15%;">Site</th>
                 
             </tr>
         </thead>
@@ -23,6 +24,7 @@
                 <td class="text-center">{{ utilisateur.username }}</td>
                 <td class="text-center">{{ utilisateur.password }}</td>
                 <td class="text-center">{{ utilisateur.is_admin }}</td>    
+                <td class="text-center">{{ utilisateur.site.nom_site|default_if_none:"" }}</td>
             </tr>
             {% empty %}
             <tr>

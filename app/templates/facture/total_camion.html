@@ -1,0 +1,197 @@
+{% extends 'facture/base.html' %}
+{% load humanize %}
+
+{% block title %}Totaux par camion{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{% url 'acceuil' %}">Accueil</a></li>
+    <li class="breadcrumb-item active">Totaux par camion</li>
+{% endblock %}
+
+{% block facture_content %}
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="fas fa-truck"></i> Totaux par camion
+            </h4>
+            <div>
+                <span class="badge bg-light text-dark">
+                    {{ camions_data|length }} camion{{ camions_data|length|pluralize }}
+                </span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Camion</th>
+                            <th>Dernière affectation</th>
+                            <th class="text-center">Factures</th>
+                            <th class="text-end">Total (MAD)</th>
+                            <th>Dernière mise à jour</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if camions_data %}
+                            {% for camion in camions_data %}
+                                <tr style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#details-{{ camion.id }}" aria-expanded="false" aria-controls="details-{{ camion.id }}">
+                                    <td>
+                                        <div class="fw-bold">{{ camion.matricule }}</div>
+                                        <small class="text-muted">{{ camion.marque }} {{ camion.modele }}</small>
+                                    </td>
+                                    <td>
+                                        {% if camion.dernier_chauffeur %}
+                                            {{ camion.dernier_chauffeur.nom }} {{ camion.dernier_chauffeur.prenom }}
+                                        {% else %}
+                                            Aucun
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">
+                                            {{ camion.nb_factures }} facture{{ camion.nb_factures|pluralize }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end fw-bold">
+                                        {{ camion.total|intcomma }} MAD
+                                    </td>
+                                    <td>
+                                        {% if camion.derniere_mise_a_jour %}
+                                            {{ camion.derniere_mise_a_jour|date:"d/m/Y H:i" }}
+                                        {% else %}
+                                            Jamais
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="5">
+                                        <div class="collapse" id="details-{{ camion.id }}">
+                                            <div class="p-3">
+                                                <h6 class="mb-3">
+                                                    <i class="fas fa-list-ul me-2"></i>
+                                                    Historique des affectations
+                                                </h6>
+                                                
+                                                {% if camion.affectations %}
+                                                    <div class="table-responsive">
+                                                        <table class="table table-sm table-bordered">
+                                                            <thead class="table-light">
+                                                                <tr>
+                                                                    <th>Chauffeur</th>
+                                                                    <th>Date d'entrée</th>
+                                                                    <th>Date de sortie</th>
+                                                                    <th class="text-center">Factures</th>
+                                                                    <th class="text-end">Total (MAD)</th>
+                                                                    <th>Statut</th>
+                                                                    <th>Destination</th>
+                                                                    <th>Distance (km)</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {% for aff in camion.affectations %}
+                                                                    <tr>
+                                                                        <td>
+                                                                            {{ aff.chauffeur.nom }} {{ aff.chauffeur.prenom }}
+                                                                        </td>
+                                                                        <td>
+                                                                            {% if aff.date_entree %}{{ aff.date_entree|date:"d/m/Y" }}{% if aff.date_entree|date:"H:i" != "00:00" %} {{ aff.date_entree|time:"H:i" }}{% endif %}{% else %}N/A{% endif %}
+                                                                        </td>
+                                                                        <td>
+                                                                            {% if aff.date_sortie %}{{ aff.date_sortie|date:"d/m/Y" }}{% if aff.date_sortie|date:"H:i" != "00:00" %} {{ aff.date_sortie|time:"H:i" }}{% endif %}{% else %}En cours...{% endif %}
+                                                                        </td>
+                                                                        <td class="text-center">
+                                                                            <span class="badge bg-primary">
+                                                                                {{ aff.nb_factures }} facture{{ aff.nb_factures|pluralize }}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td class="text-end">
+                                                                            {{ aff.total|intcomma }} MAD
+                                                                        </td>
+                                                                        <td>
+                                                                            <span class="badge {% if aff.statut == 'Terminée' %}bg-secondary{% else %}bg-success{% endif %}">
+                                                                                {{ aff.statut }}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td>
+                                                                            {{ aff.destination }}
+                                                                        </td>
+                                                                        <td class="text-end">
+                                                                            {{ aff.distance }} km
+                                                                        </td>
+                                                                    </tr>
+                                                                {% endfor %}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                {% else %}
+                                                    <div class="alert alert-info mb-0">
+                                                        <i class="fas fa-info-circle me-2"></i>
+                                                        Aucune affectation trouvée pour ce camion.
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="fas fa-truck-loading fa-2x mb-2"></i>
+                                        <p class="mb-0">Aucun camion avec des factures trouvé.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                    <tfoot class="table-dark">
+                        <tr>
+                            <th colspan="4" class="text-end">Total général :</th>
+                            <th>{{ total_general|intcomma }} MAD</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer text-muted">
+        <div class="row">
+            <div class="col-md-6">
+                <i class="fas fa-info-circle"></i> Montants affichés en Dirham Marocain (MAD)
+            </div>
+            <div class="col-md-6 text-end">
+                <i class="fas fa-sync-alt"></i> Dernière actualisation : {% now "d/m/Y H:i" %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    [data-bs-toggle="collapse"] .fa-chevron-down {
+        transition: transform 0.3s ease;
+    }
+
+    [data-bs-toggle="collapse"].collapsed .fa-chevron-down {
+        transform: rotate(-90deg);
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+
+    .badge {
+        font-size: 0.85em;
+        padding: 0.35em 0.65em;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Actualiser la page toutes les 5 minutes
+    setTimeout(function() {
+        window.location.reload();
+    }, 5 * 60 * 1000);
+</script>
+{% endblock %}

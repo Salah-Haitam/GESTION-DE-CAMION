@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Scan QR Code - Entrée/Sortie Camion{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Scan QR Code - Entrée/Sortie</h3>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <div id="reader" style="width: 100%; max-width: 500px; margin: 0 auto;"></div>
+                    </div>
+                    
+                    <div id="result" class="mt-4">
+                        <!-- Les résultats du scan seront affichés ici -->
+                        <div class="alert alert-info">
+                            Positionnez le QR code dans le cadre pour le scanner
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <button id="newScanBtn" class="btn btn-secondary" style="display: none;">
+                            <i class="fas fa-redo"></i> Nouveau Scan
+                        </button>
+                    </div>
+                    
+                    <div id="scan-details" class="mt-4" style="display: none;">
+                        <h4>Détails du scan</h4>
+                        <table class="table table-bordered">
+                            <tr>
+                                <th>Action</th>
+                                <td id="action"></td>
+                            </tr>
+                            <tr>
+                                <th>Chauffeur</th>
+                                <td id="chauffeur"></td>
+                            </tr>
+                            <tr>
+                                <th>Matricule</th>
+                                <td id="matricule"></td>
+                            </tr>
+                            <tr>
+                                <th>Date entrée</th>
+                                <td id="date-entree"></td>
+                            </tr>
+                            <tr>
+                                <th>Heure entrée</th>
+                                <td id="heure-entree"></td>
+                            </tr>
+                            <tr id="sortie-row" style="display: none;">
+                                <th>Date sortie</th>
+                                <td id="date-sortie"></td>
+                            </tr>
+                            <tr id="duree-row" style="display: none;">
+                                <th>Durée</th>
+                                <td id="duree"></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inclure la bibliothèque html5-qrcode -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+// Fonction pour formater la date au format français
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const [day, month, year] = dateString.split('/');
+    return `${day}/${month}/${year}`;
+}
+
+// Fonction pour afficher les résultats du scan
+function displayScanResult(data) {
+    const resultDiv = document.getElementById('result');
+    const scanDetails = document.getElementById('scan-details');
+    
+    if (data.status === 'success') {
+        // Mettre à jour les détails du scan
+        document.getElementById('action').textContent = data.action === 'entree' ? 'Entrée' : 'Sortie';
+        document.getElementById('chauffeur').textContent = data.chauffeur || 'Non disponible';
+        document.getElementById('matricule').textContent = data.matricule || 'Non disponible';
+        document.getElementById('date-entree').textContent = formatDate(data.date_entree) || 'En cours...';
+        document.getElementById('heure-entree').textContent = data.heure_entree || 'En cours...';
+        
+        // Si c'est une sortie, afficher les informations de sortie
+        if (data.action === 'sortie') {
+            document.getElementById('sortie-row').style.display = 'table-row';
+            document.getElementById('duree-row').style.display = 'table-row';
+            document.getElementById('date-sortie').textContent = formatDate(data.date_sortie);
+            document.getElementById('duree').textContent = data.duree || 'Non disponible';
+        } else {
+            document.getElementById('sortie-row').style.display = 'none';
+            document.getElementById('duree-row').style.display = 'none';
+        }
+        
+        // Afficher les détails et le bouton Nouveau Scan
+        document.getElementById('newScanBtn').style.display = 'inline-block';
+        scanDetails.style.display = 'block';
+        
+        // Afficher un message de succès
+        resultDiv.innerHTML = `
+            <div class="alert alert-success">
+                <h4>Scan réussi !</h4>
+                <p>${data.action === 'entree' ? 'Entrée' : 'Sortie'} enregistrée avec succès.</p>
+            </div>
+        `;
+    } else {
+        // Afficher un message d'erreur
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <h4>Erreur lors du scan</h4>
+                <p>${data.message || 'Une erreur inconnue est survenue.'}</p>
+            </div>
+        `;
+        scanDetails.style.display = 'none';
+    }
+    
+    // Redémarrer le scan après un délai
+    setTimeout(() => {
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    }, 3000);
+}
+
+// Configuration du scanner QR code
+let html5QrcodeScanner;
+
+function startScanner() {
+    try {
+        html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", 
+            { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            },
+            /* verbose= */ false
+        );
+        
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    } catch (error) {
+        console.error('Erreur lors de l\'initialisation du scanner:', error);
+        document.getElementById('result').innerHTML = `
+            <div class="alert alert-danger">
+                <h4>Erreur d'accès à la caméra</h4>
+                <p>Veuillez vérifier que vous avez autorisé l'accès à la caméra et réessayer.</p>
+                <button class="btn btn-primary" onclick="window.location.reload()">Réessayer</button>
+            </div>
+        `;
+    }
+}
+
+// Démarrer le scanner au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    // Vérifier si le navigateur prend en charge la caméra
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        document.getElementById('result').innerHTML = `
+            <div class="alert alert-warning">
+                <h4>Navigateur non supporté</h4>
+                <p>Votre navigateur ne prend pas en charge l'accès à la caméra. Veuillez utiliser un navigateur récent comme Chrome ou Firefox.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Démarrer le scanner
+    startScanner();
+});
+
+// Fonction appelée lors d'un scan réussi
+async function onScanSuccess(decodedText, decodedResult) {
+    // Arrêter le scanner temporairement
+    html5QrcodeScanner.pause();
+    
+    // Afficher un message de chargement
+    document.getElementById('result').innerHTML = `
+        <div class="alert alert-warning">
+            Traitement en cours...
+        </div>
+    `;
+    
+    try {
+        // Envoyer les données du QR code au serveur
+        const response = await fetch('/scan-qr/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ qr_data: decodedText })
+        });
+        
+        const data = await response.json();
+        displayScanResult(data);
+    } catch (error) {
+        console.error('Erreur:', error);
+        displayScanResult({
+            status: 'error',
+            message: 'Erreur de communication avec le serveur'
+        });
+    }
+}
+
+// Fonction appelée en cas d'échec du scan
+function onScanFailure(error) {
+    // Ne pas afficher les messages d'erreur génériques
+    if (error && error.message && error.message.includes('NotReadableError')) {
+        console.error('Erreur d\'accès à la caméra:', error);
+        // Ne pas afficher l'erreur à l'utilisateur ici, car elle est déjà gérée par startScanner()
+        return;
+    }
+    
+    // Pour les autres erreurs, afficher un message générique
+    console.warn(`Erreur de scan: ${error}`);
+}
+
+// Le scanner est maintenant démarré via la fonction startScanner()
+
+// Gestion du bouton Nouveau Scan
+document.addEventListener('DOMContentLoaded', function() {
+    const newScanBtn = document.getElementById('newScanBtn');
+    
+    newScanBtn.addEventListener('click', function() {
+        // Réinitialiser l'affichage
+        document.getElementById('result').innerHTML = `
+            <div class="alert alert-info">
+                Positionnez le QR code dans le cadre pour le scanner
+            </div>
+        `;
+        document.getElementById('scan-details').style.display = 'none';
+        
+        // Redémarrer le scanner
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.clear();
+            startScanner();
+        }
+        
+        // Cacher le bouton Nouveau Scan
+        this.style.display = 'none';
+    });
+});
+</script>
+
+<style>
+#reader {
+    margin: 0 auto;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#reader video {
+    width: 100%;
+}
+
+#reader img {
+    display: none;
+}
+
+#scan-details {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.alert {
+    margin-bottom: 20px;
+}
+
+.table {
+    background-color: white;
+}
+</style>
+{% endblock %}

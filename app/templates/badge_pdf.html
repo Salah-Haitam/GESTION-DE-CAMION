@@ -28,7 +28,7 @@
             box-sizing: border-box;
             page-break-inside: avoid;
             page-break-after: auto;
-            {% comment %} display:flex; {% endcomment %}
+           
         }
     
         .badge-header {
@@ -53,31 +53,19 @@
             flex-wrap: wrap;
             gap: 2mm;
             margin-left: 30px;
-            {% comment %} padding-top: 100px; {% endcomment %}
         }
     
         .driver-info {
             flex: 2;
             min-width: 30%;
-            {% comment %} padding-top: 40px; {% endcomment %}
         }
     
         .qr-section {
-            {% comment %} flex: 1; {% endcomment %}
             display: flex;
             justify-content: flex-start;
             flex-direction: row-reverse;
             flex-wrap: wrap;
             margin-left: 300px;
-            {% comment %} flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start; {% endcomment %}
-            {% comment %} border-left: 1px solid #eee;
-            padding-left: 10mm;
-            padding-top: 50px;
-            margin-right: 10px; {% endcomment %}
         }
     
         .info-line {
@@ -92,15 +80,11 @@
         .info-line strong {
             color: #2c3e50;
             min-width: 140px;
-            {% comment %} display: inline-block; {% endcomment %}
         }
     
         .qr-code {
             max-width: 150px;
             height: auto;
-            {% comment %} margin-top: 93px; {% endcomment %}
-            {% comment %} border: 1px solid #eee; {% endcomment %}
-            {% comment %} padding: 8px; {% endcomment %}
             background: white;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
@@ -147,7 +131,11 @@
     <div class="badge-container">
         <div class="badge-header" style=" align-items: center; ">
             <h1 style="margin: 0;">BADGE</h1>
-            <img src="{% static 'app/images/logo.png' %}" alt="Logo" class="logo" style="max-width: 150px; height: auto; margin: 0;">
+            {% if logo_base64 %}
+    <img src="data:image/png;base64,{{ logo_base64 }}" alt="Logo" class="logo" style="max-width: 150px; height: auto; margin: 0;">
+{% else %}
+    <img src="{% static 'app/images/logo.png' %}" alt="Logo" class="logo" style="max-width: 150px; height: auto; margin: 0;">
+{% endif %}
         </div>
       <div class="badge-content1">
         <div class="badge-content">
@@ -164,15 +152,15 @@
             </div>
         </div>
         <div class="qr-section">
-            {% if affectation and affectation.qr_code %}
-                <img src="{{ affectation.qr_code.url }}" alt="QR Code" class="qr-code">
-            {% elif chauffeur.qr_code  %}
-                <img src="{{ chauffeur.qr_code.url }}" alt="QR Code" class="qr-code">
-            {% else %}
-                <div class="info-line" style="text-align: center;">
-                    Aucun code QR d'affectation disponible
-                </div>
-            {% endif %}
+            {% if qr_code_base64 %}
+    <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="QR Code" class="qr-code">
+{% elif affectation and affectation.qr_code %}
+    <img src="{{ affectation.qr_code.url }}" alt="QR Code" class="qr-code">
+{% else %}
+    <div class="info-line" style="text-align: center;">
+        Aucun code QR d'affectation disponible
+    </div>
+{% endif %}
         </div>
       </div>
         {% comment %} <div class="badge-content">

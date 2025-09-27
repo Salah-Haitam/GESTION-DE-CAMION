@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Journal des Entrées/Sorties{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Journal des Entrées/Sorties des Camions</h2>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+    <div class="d-flex justify-content-between align-items-center">
+        <span>Liste des mouvements</span>
+        <div class="d-flex gap-2">
+            {% if request.session.is_admin or user.is_staff %}
+            <a href="{% url 'scan_qr' %}" class="btn btn-light btn-sm">
+                <i class="bi bi-qr-code-scan"></i> Scanner un QR Code
+            </a>
+            {% endif %}
+            <a href="?sort=statut" class="btn btn-outline-light btn-sm {% if sort == 'statut' %}active fw-bold border border-2 border-warning text-warning{% endif %}">
+                <i class="bi bi-sort-alpha-down"></i> Trier par statut
+            </a>
+        </div>
+    </div>
+</div>
+        
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Camion</th>
+                            <th>Chauffeur</th>
+                            <th>Prestataire</th>
+                            <th>Entrée</th>
+                            <th>Sortie</th>
+                            <th>Durée</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mouvement in entrees_sorties %}
+                        <tr>
+                            <td>{{ mouvement.id }}</td>
+                            <td>
+                                <strong>{{ mouvement.camion }}</strong>
+                            </td>
+                            <td>{{ mouvement.chauffeur }}</td>
+                            <td>{{ mouvement.prestataire }}</td>
+                            <td>
+                                <div>{{ mouvement.date_entree|date:"d/m/Y" }}</div>
+                                <small class="text-muted">{{ mouvement.heure_entree|time:"H:i" }}</small>
+                            </td>
+                            <td>
+                                {% if mouvement.date_sortie %}
+                                    <div>{{ mouvement.date_sortie|date:"d/m/Y" }}</div>
+                                    <small class="text-muted">{{ mouvement.heure_sortie|time:"H:i" }}</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ mouvement.duree }}</td>
+                            <td>
+                                {% if mouvement.statut == 'En cours' %}
+                                    <span class="badge bg-warning text-dark">{{ mouvement.statut }}</span>
+                                {% else %}
+                                    <span class="badge bg-success">{{ mouvement.statut }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center">Aucun mouvement enregistré pour le moment.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card-footer text-muted">
+            <div class="d-flex justify-content-between align-items-center">
+                <span>Dernière mise à jour : {% now "d/m/Y H:i" %}</span>
+                <span id="heure-locale" class="fw-bold"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Mettre à jour l'heure locale en temps réel
+function updateHeureLocale() {
+    const now = new Date();
+    const options = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    };
+    
+    // Formater la date et l'heure selon la locale de l'utilisateur
+    const dateStr = now.toLocaleDateString('fr-FR', options);
+    document.getElementById('heure-locale').textContent = `Heure locale : ${dateStr}`;
+}
+
+// Mettre à jour l'heure toutes les secondes
+updateHeureLocale();
+setInterval(updateHeureLocale, 1000);
+</script>
+
+<style>
+    .table th {
+        white-space: nowrap;
+    }
+    .badge {
+        font-size: 0.85em;
+        padding: 0.35em 0.65em;
+    }
+</style>
+{% endblock %}

@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 
-{% block title %}Camions sortis{% endblock %}
+{% block title %}Camions{% endblock %}
 
 {% block content %}
-<h1>Camions sortis</h1>
+<h1>Camions</h1>
 
 <div class="table-responsive">
     <table class="table table-bordered table-hover">
@@ -18,7 +18,7 @@
         </thead>
         <tbody>
             {% for camion in camions %}
-            {% if camion.date_sortieC and camion.heure_sortieC %}
+            
             <tr>
                 <td class="text-center">{{ camion.id_camion }}</td>
                 <td class="text-center">{{ camion.id_chauffeur }}</td>
@@ -36,7 +36,7 @@
                     {% endif %}
                 </td>
             </tr>
-            {% endif %}
+
             {% empty %}
             <tr>
                 <td colspan="11" class="text-center">Aucun camion sorti.</td>

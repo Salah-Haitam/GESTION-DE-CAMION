@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Détail de la facture{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Détail de la facture</h2>
+    <div class="card">
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-4">Numéro de facture</dt>
+                <dd class="col-sm-8">#{{ facture.id_facture|stringformat:"06d" }}</dd>
+                <dt class="col-sm-4">Date</dt>
+                <dd class="col-sm-8">{{ facture.date_facture|date:"d/m/Y" }}</dd>
+                <dt class="col-sm-4">Camion</dt>
+                <dd class="col-sm-8">{{ facture.affectation.camion.matricule_camion }}</dd>
+                <dt class="col-sm-4">Chauffeur</dt>
+                <dd class="col-sm-8">{{ facture.affectation.chauffeur.nom_chauffeur }}</dd>
+                <dt class="col-sm-4">Destination</dt>
+                <dd class="col-sm-8">{{ facture.destination }}</dd>
+                <dt class="col-sm-4">Poids marchandise</dt>
+                <dd class="col-sm-8">{{ facture.poids_marchandise }} t</dd>
+                <dt class="col-sm-4">Distance</dt>
+                <dd class="col-sm-8">{{ facture.distance_km|floatformat:2 }} km</dd>
+                <dt class="col-sm-4">Frais de transport</dt>
+                <dd class="col-sm-8">{{ facture.frais_marchandise|floatformat:2 }} MAD</dd>
+                <dt class="col-sm-4">Prix par km</dt>
+                <dd class="col-sm-8">{{ facture.prix_par_km|floatformat:2 }} MAD</dd>
+                <dt class="col-sm-4">Prix par tonne</dt>
+                <dd class="col-sm-8">{{ facture.prix_par_tonne|floatformat:2 }} MAD</dd>
+                <dt class="col-sm-4">Montant total</dt>
+                <dd class="col-sm-8 fw-bold fs-5">{{ facture.montant_total|floatformat:2 }} MAD</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="mt-4">
+        <a href="{% url 'facture_list' %}" class="btn btn-secondary">Retour à la liste des factures</a>
+    </div>
+</div>
+{% endblock %}

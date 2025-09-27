@@ -4,21 +4,23 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
-from .models import chauffeur, camion, prestataire, Affectation, Utilisateur, EntreeSortie
-from .forms import ChauffeurForm, CamionForm, RechercheCamionForm, SortieCamionForm, PrestataireForm, BadgeForm, NouveauPrestataireForm, UserForm
+from .models import chauffeur, camion, prestataire, Affectation, Utilisateur, EntreeSortie, site, Facture
+from .forms import ChauffeurForm, CamionForm, RechercheCamionForm, PrestataireForm, BadgeForm,NouveauPrestataireForm, UserForm ,FactureForm
 from django.contrib import messages
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from weasyprint import HTML
-from django.shortcuts import get_object_or_404
 import base64
-from django.utils import timezone
-from datetime import datetime
+from datetime import datetime, timedelta
+import pytz
 from django.core.exceptions import ValidationError
-from django.conf import settings  # Import pour accéder aux paramètres
+from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
-from django.http import JsonResponse
 from weasyprint import CSS
+import json
+
+
+
 
 # Create your views here.   
 def afficher_message(request):
@@ -189,6 +191,7 @@ def interface_admin(request):
         'camions': camions,
         'prestataires': prestataires,
         'utilisateurs': utilisateurs,
+ 
     })
 
 
@@ -221,7 +224,7 @@ def login_couverture(request):
             if utilisateur.is_admin:
                 return render(request, 'index.html')
             else:
-                return redirect('index')  # ou une autre page utilisateur normal
+                return redirect('acceuil')  # ou une autre page utilisateur normal
 
         else:
             # Aucun des deux utilisateurs authentifié
@@ -426,6 +429,7 @@ def genere_bdg(request):
         form = BadgeForm(request.POST)
         if form.is_valid():
             chauffeur_obj = form.cleaned_data['chauffeur']
+            affectation = Affectation.objects.filter(chauffeur=chauffeur_obj).first()
             # Récupérer tous les camions associés à ce chauffeur
             camions = camion.objects.filter(id_chauffeur=chauffeur_obj)
             
@@ -434,6 +438,7 @@ def genere_bdg(request):
                 'chauffeur': chauffeur_obj,
                 'camions': camions,  # Envoyer la liste des camions
                 'prestataire': chauffeur_obj.prestataire if hasattr(chauffeur_obj, 'prestataire') else None,
+                'affectation': affectation,
                 'show_badge': True
             })
     else:
@@ -461,19 +466,44 @@ def badge_pdf(request, chauffeur_id):
         'chauffeur': chauffeur_obj,
         'affectation': affectation,
         'request': request  # Important pour les URLs absolues
-    })
+        
 
+    })
 def download_badge_pdf(request, chauffeur_id):
     # Récupération des données
     chauffeur_obj = get_object_or_404(chauffeur, id_chauffeur=chauffeur_id)
     affectation = Affectation.objects.filter(chauffeur=chauffeur_obj).order_by('-id').first()
     
-    # Rendu du contenu du badge
+    import base64
+    import os
+    from django.conf import settings
+
+    # Encoder le logo en base64
+    logo_path = os.path.join(settings.BASE_DIR, 'app', 'static', 'app', 'images', 'logo.png')
+    logo_base64 = ''
+    try:
+        with open(logo_path, 'rb') as f:
+            logo_base64 = base64.b64encode(f.read()).decode('utf-8')
+    except Exception:
+        logo_base64 = ''
+
+    # Encoder le QR code en base64
+    qr_code_base64 = ''
+    if affectation and affectation.qr_code and affectation.qr_code.path:
+        try:
+            with open(affectation.qr_code.path, 'rb') as f:
+                qr_code_base64 = base64.b64encode(f.read()).decode('utf-8')
+        except Exception:
+            qr_code_base64 = ''
+
+    # Rendu du contenu du badge avec images base64
     badge_content = render_to_string('badge_pdf.html', {
         'chauffeur': chauffeur_obj,
         'affectation': affectation,
         'request': request,
-        'is_pdf': True  # Ajout d'un flag pour le template si nécessaire
+        'is_pdf': True,
+        'logo_base64': logo_base64,
+        'qr_code_base64': qr_code_base64
     })
     
     # Configuration de la réponse PDF
@@ -486,10 +516,13 @@ def download_badge_pdf(request, chauffeur_id):
         'presentational_hints': True
     }
     
+    # Configuration de base_url pour résoudre les URLs statiques
+    base_url = request.build_absolute_uri('/')[:-1]  # Retire le slash final
+    
     # Génération du PDF
     HTML(
         string=badge_content,
-        base_url=request.build_absolute_uri()
+        base_url=base_url
     ).write_pdf(
         response,
         stylesheets=[
@@ -509,7 +542,6 @@ def download_badge_pdf(request, chauffeur_id):
                     height: 100%;
                     page-break-inside: avoid;
                 }
-                /* Ajoutez ici d'autres styles spécifiques si nécessaire */
             ''')
         ],
         **pdf_options
@@ -605,6 +637,7 @@ def afficher_utilisateurs(request):
 
 def modifier_utilisateur(request, id_user):
     utilisateur_obj = get_object_or_404(Utilisateur, id_user=id_user)
+    
     if request.method == 'POST':
         if 'delete' in request.POST:
             utilisateur_obj.delete()
@@ -616,15 +649,6 @@ def modifier_utilisateur(request, id_user):
     else:
         form = UserForm(instance=utilisateur_obj)
     return render(request, 'modifier_utilisateur.html', {'form': form})
-
-from django.http import HttpResponse
-from django.template.loader import render_to_string
-from django.utils.text import slugify
-from .models import chauffeur, Affectation
-
-from django.shortcuts import get_object_or_404
-from django.http import HttpResponse
-from .models import chauffeur
 
 
 
@@ -668,11 +692,8 @@ from .models import chauffeur
 def download_zpl(request, chauffeur_id): 
     chauffeur_obj = get_object_or_404(chauffeur, id_chauffeur=chauffeur_id)
 
-    # Chercher l'affectation liée au chauffeur
-    try:
-        affectation = Affectation.objects.get(chauffeur=chauffeur_obj)
-    except Affectation.DoesNotExist:
-        affectation = None
+    # Récupérer la dernière affectation du chauffeur (la plus récente)
+    affectation = Affectation.objects.filter(chauffeur=chauffeur_obj).order_by('-id').first()
 
     # Déterminer le QR code à utiliser
     if affectation and affectation.qr_code:
@@ -682,7 +703,6 @@ def download_zpl(request, chauffeur_id):
             f"NOM :{affectation.chauffeur.nom_chauffeur} \n"\
             f"PRENOM :{affectation.chauffeur.prenom_chauffeur}\n"\
             f"CAMION :\n MATRICULE :{affectation.camion.matricule_camion}\n"\
-            f"NOM SOCIETE : {affectation.camion.nom_societe}\n"\
             f"PRESTATAIRE : \n ID : {affectation.prestataire.id_prestataire}\n"\
             f"NOM : {affectation.prestataire.nom_prestataire}\n"\
             f"ADRESSE : {affectation.prestataire.adresse_prestataire}\n"\
@@ -710,7 +730,7 @@ def download_zpl(request, chauffeur_id):
 ^FO80,160^A0N,40,40^FB300,1,0,L^FDBADGE^FS
 
 ^FX QR Code
-^FO200,500^BQN,2,6^FDQA,{qr_data}^FS
+^FO150,500^BQN,2,6^FDQA,{qr_data}^FS
 
 ^FX Infos chauffeur
 ^FO150,360^A0N,28,28^FD{chauffeur_obj.nom_chauffeur} {chauffeur_obj.prenom_chauffeur}^FS
@@ -795,234 +815,426 @@ def download_zpl(request, chauffeur_id):
 #     response = HttpResponse(zpl_content, content_type='application/octet-stream')
 #     response['Content-Disposition'] = f'attachment; filename="{filename}"'
 #     return response
-def scanner_page(request):
-    """Page de scan pour l'interface mobile"""
-    if not request.user.is_authenticated:
-        return redirect('login')
-    return render(request, 'scanner.html')
 
+def extract_chauffeur_id(qr_text):
+    """Extrait l'ID du chauffeur à partir du texte du QR code"""
+    
+    # Si c'est juste un nombre, c'est probablement l'ID directement
+    if qr_text.isdigit():
+        return int(qr_text)
+    
+    # Sinon, essayons d'extraire l'ID du texte formaté
+    lines = qr_text.split('\n')
+    for line in lines:
+        if line.startswith('ID:'):
+            try:
+                return int(line.replace('ID:', '').strip())
+            except (ValueError, AttributeError):
+                continue
+    return None
+
+
+def extract_affectation_id(qr_text):
+    """Extrait l'ID de l'affectation à partir du texte du QR code"""
+    
+    # Si c'est juste un nombre, c'est probablement l'ID directement
+    if qr_text.isdigit():
+        return int(qr_text)
+    
+    # Nettoyer le texte des caractères de contrôle ZPL si nécessaire
+    clean_text = qr_text.replace('^FD', '').replace('^FS', '').strip()
+    
+    # Essayer d'extraire l'ID de différents formats de texte
+    lines = clean_text.split('\n')
+    for line in lines:
+        # Format standard
+        if 'ID:' in line:
+            try:
+                return int(line.split('ID:')[-1].strip())
+            except (ValueError, AttributeError):
+                continue
+        # Format ZPL simplifié
+        elif '^FD' in line and 'ID' in line:
+            try:
+                return int(line.split('ID')[-1].replace('^FS', '').strip())
+            except (ValueError, AttributeError):
+                continue
+    
+    # Si on arrive ici, essayer de trouver un nombre dans le texte
+    import re
+    numbers = re.findall(r'\d+', clean_text)
+    if numbers:
+        try:
+            return int(numbers[0])  # Retourne le premier nombre trouvé
+        except (ValueError, AttributeError):
+            pass
+            
+    return None
+
+@csrf_exempt
+def scan_qr(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            qr_data = data.get('qr_data', '')
+            
+            # Journalisation du contenu brut du QR code pour le débogage
+            print(f"QR Code brut reçu: {qr_data[:100]}..." if len(qr_data) > 100 else f"QR Code brut reçu: {qr_data}")
+            
+            # Extraire l'ID de l'affectation du texte du QR code
+            affectation_id = extract_affectation_id(qr_data)
+            
+            if not affectation_id:
+                # Essayer d'extraire un ID de chauffeur si l'extraction d'affectation échoue
+                chauffeur_id_match = re.search(r'CHAUFFEUR[^\d]*(\d+)', qr_data, re.IGNORECASE)
+                if chauffeur_id_match:
+                    try:
+                        chauffeur_id = int(chauffeur_id_match.group(1))
+                        # Récupérer la dernière affectation de ce chauffeur
+                        affectation = Affectation.objects.filter(chauffeur_id=chauffeur_id).order_by('-id').first()
+                        if affectation:
+                            affectation_id = affectation.id
+                    except (ValueError, AttributeError):
+                        pass
+            
+            if not affectation_id:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Format de QR code non reconnu. Impossible d\'extraire un identifiant valide.',
+                    'qr_data_received': qr_data[:200]  # Retourne un aperçu des données reçues pour le débogage
+                }, status=400)
+            
+            # Essayer de trouver l'affectation avec cet ID
+            try:
+                affectation = Affectation.objects.get(id=affectation_id)
+                chauffeur_obj = affectation.chauffeur
+                camion_obj = affectation.camion
+            except Affectation.DoesNotExist:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Affectation non trouvée'
+                }, status=404)
+            
+            # Vérifier s'il y a déjà une entrée non fermée pour cette affectation
+            entree_ouverte = EntreeSortie.objects.filter(
+                affectation=affectation,
+                date_sortie__isnull=True,
+                heure_sortie__isnull=True
+            ).order_by('-date_entree', '-heure_entree').first()
+            
+            # Obtenir l'heure actuelle dans le fuseau horaire de Casablanca
+            casablanca_tz = pytz.timezone('Africa/Casablanca')
+            now = timezone.now().astimezone(casablanca_tz)
+            
+            if entree_ouverte:
+                # Mettre à jour la sortie avec l'heure locale du serveur
+                entree_ouverte.date_sortie = now.date()
+                entree_ouverte.heure_sortie = now.time()
+                entree_ouverte.save()
+                
+                # Créer des objets datetime conscients du fuseau horaire pour le calcul de la durée
+                debut_naive = datetime.combine(entree_ouverte.date_entree, entree_ouverte.heure_entree)
+                debut = casablanca_tz.localize(debut_naive)
+                duree = now - debut
+                
+                return JsonResponse({
+                    'status': 'success',
+                    'action': 'sortie',
+                    'chauffeur': f"{chauffeur_obj.nom_chauffeur} {chauffeur_obj.prenom_chauffeur}",
+                    'matricule': camion_obj.matricule_camion if camion_obj else 'Inconnu',
+                    'date_entree': entree_ouverte.date_entree.strftime('%d/%m/%Y'),
+                    'heure_entree': entree_ouverte.heure_entree.strftime('%H:%M'),
+                    'date_sortie': now.strftime('%d/%m/%Y'),
+                    'heure_sortie': now.strftime('%H:%M'),
+                    'duree': str(duree).split('.')[0],  # Enlever les microsecondes
+                    'prestataire': affectation.prestataire.nom_prestataire if affectation.prestataire else 'Non spécifié'
+                })
+            else:
+                # Créer une nouvelle entrée avec l'heure locale
+                entree = EntreeSortie.objects.create(
+                    affectation=affectation,
+                    date_entree=now.date(),
+                    heure_entree=now.time()
+                )
+                
+                return JsonResponse({
+                    'status': 'success',
+                    'action': 'entree',
+                    'chauffeur': f"{chauffeur_obj.nom_chauffeur} {chauffeur_obj.prenom_chauffeur}",
+                    'matricule': camion_obj.matricule_camion if camion_obj else 'Inconnu',
+                    'date_entree': now.strftime('%d/%m/%Y'),
+                    'heure_entree': now.strftime('%H:%M')
+                })
+                
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+    
+    # Si ce n'est pas une requête POST, afficher la page de scan
+    return render(request, 'scan_qr.html')
+
+def afficher_entree_sortie(request):
+    sort = request.GET.get('sort')
+    entrees_sorties = EntreeSortie.objects.select_related(
+        'affectation__chauffeur',
+        'affectation__camion',
+        'affectation__prestataire'
+    ).order_by('-date_entree', '-heure_entree')
+
+    # Préparer les données pour le template
+    donnees = []
+    for es in entrees_sorties:
+        duree = None
+        if es.date_sortie and es.heure_sortie:
+            debut = datetime.combine(es.date_entree, es.heure_entree)
+            fin = datetime.combine(es.date_sortie, es.heure_sortie)
+            duree = fin - debut
+            jours = duree.days
+            heures, reste = divmod(duree.seconds, 3600)
+            minutes, secondes = divmod(reste, 60)
+            duree = f"{jours}j {heures}h {minutes}m"
+        donnees.append({
+            'id': es.id_entreeSortie,
+            'camion': es.affectation.camion.matricule_camion if es.affectation.camion else 'N/A',
+            'chauffeur': f"{es.affectation.chauffeur.nom_chauffeur} {es.affectation.chauffeur.prenom_chauffeur}",
+            'prestataire': es.affectation.prestataire.nom_prestataire if es.affectation.prestataire else 'N/A',
+            'date_entree': es.date_entree,
+            'heure_entree': es.heure_entree,
+            'date_sortie': es.date_sortie,
+            'heure_sortie': es.heure_sortie,
+            'duree': duree or 'En cours...',
+            'statut': 'Sorti' if es.date_sortie and es.heure_sortie else 'En cours'
+        })
+
+    if sort == 'statut':
+        # Trie d'abord par statut (En cours en haut), puis par date d'entrée/heure
+        donnees = sorted(donnees, key=lambda x: (0 if x['statut'] == 'En cours' else 1, -x['date_entree'].toordinal(), -x['heure_entree'].hour, -x['heure_entree'].minute))
+
+    return render(request, 'afficher-entree_sortie.html', {'entrees_sorties': donnees, 'sort': sort})
 
 def test_camera(request):
     """Page de test de la caméra"""
     return render(request, 'test_camera.html')
 
-# app/views.py
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
-import json
-from django.contrib.auth.decorators import login_required
 
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
-import json
-
-@require_http_methods(["POST"])
-@csrf_exempt
-def process_qr_scan(request):
-    """
-    Traite les données d'un QR code scanné.
-    """
-    # Vérifier si l'utilisateur est authentifié
-    if not request.user.is_authenticated:
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Authentification requise',
-            'redirect': '/login/'
-        }, status=401)
-    
-    # Récupérer les données JSON
-    try:
-        data = json.loads(request.body)
-        qr_data = data.get('qr_data', '').strip()
-    except json.JSONDecodeError:
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Données JSON invalides'
-        }, status=400)
-    
-    if not qr_data:
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Aucune donnée QR reçue'
-        }, status=400)
-    
-    # Journaliser le scan pour le débogage
-    print(f"[QR SCAN] Données reçues: {qr_data}")
-    
-    try:
-        # Traitement des données du QR code
-        
-        # 1. Vérifier si c'est une URL
-        if qr_data.startswith(('http://', 'https://')):
-            # Extraire l'ID de l'objet depuis l'URL si possible
-            import re
-            match = re.search(r'scan/(\w+)/(\d+)/', qr_data)
-            if match:
-                object_type = match.group(1)
-                object_id = match.group(2)
-                print(f"[QR SCAN] Type: {object_type}, ID: {object_id}")
-                
-                # Rediriger vers la vue de scan appropriée
-                return JsonResponse({
-                    'status': 'success',
-                    'type': 'url',
-                    'data': {
-                        'type': object_type,
-                        'id': object_id,
-                        'url': qr_data
-                    },
-                    'redirect': f'/scan/{object_type}/{object_id}/',
-                    'message': 'URL de scan détectée avec succès'
-                })
+def creer_facture(request):
+    if request.method == 'POST':
+        form = FactureForm(request.POST)
+        if form.is_valid():
+            facture = form.save(commit=False)
             
-            # Si c'est une URL mais pas une URL de scan connue
-            return JsonResponse({
-                'status': 'success',
-                'type': 'url',
-                'data': {
-                    'url': qr_data,
-                    'raw': qr_data
-                },
-                'message': 'URL détectée dans le QR code'
-            })
-        
-        # 2. Vérifier si c'est un ID de chauffeur (format: chauffeur:123)
-        elif qr_data.startswith('chauffeur:'):
+            # Récupérer les coordonnées GPS depuis le formulaire
+            facture.latitude_depart = form.cleaned_data.get('latitude_depart')
+            facture.longitude_depart = form.cleaned_data.get('longitude_depart')
+            
             try:
-                chauffeur_id = qr_data.split(':')[1]
-                from .models import chauffeur
-                chauffeur_obj = chauffeur.objects.get(id_chauffeur=chauffeur_id)
-                
-                return JsonResponse({
-                    'status': 'success',
-                    'type': 'chauffeur',
-                    'data': {
-                        'id': chauffeur_obj.id_chauffeur,
-                        'nom_complet': f"{chauffeur_obj.prenom} {chauffeur_obj.nom}",
-                        'matricule': chauffeur_obj.matricule or 'N/A',
-                        'raw': qr_data
-                    },
-                    'redirect': f'/chauffeur/{chauffeur_id}/',
-                    'message': 'Chauffeur identifié avec succès'
-                })
-                
-            except (IndexError, ValueError):
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Format de QR code invalide pour un chauffeur',
-                    'expected_format': 'chauffeur:ID_CHAUFFEUR'
-                }, status=400)
-                
-            except chauffeur.DoesNotExist:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': f'Chauffeur avec l\'ID {chauffeur_id} non trouvé'
-                }, status=404)
-        
-        # 3. Autre type de données (texte brut)
+                facture.save()  # Le modèle calculera automatiquement la distance
+                messages.success(request, 'Facture créée avec succès!')
+                return redirect('facture_detail', pk=facture.pk)
+            except Exception as e:
+                messages.error(request, f'Erreur lors de la création: {str(e)}')
         else:
-            return JsonResponse({
-                'status': 'success',
-                'type': 'text',
-                'data': {
-                    'raw': qr_data
-                },
-                'message': 'Données texte extraites avec succès'
-            })
-            
-    except Exception as e:
-        # En cas d'erreur inattendue
-        import traceback
-        print(f"[QR SCAN] Erreur inattendue: {str(e)}\n{traceback.format_exc()}")
-        
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Une erreur est survenue lors du traitement du QR code',
-            'error': str(e)
-        }, status=500)
-
-def scan_qr_code(request, id_objet, type_objet):
-    """
-    Vue appelée lors du scan d'un QR code.
-    type_objet peut être 'prestataire', 'chauffeur' ou 'affectation'
-    id_objet est l'identifiant de l'objet dans la base de données
-    """
-    try:
-        if type_objet == 'affectation':
-            # Récupérer l'affectation correspondante
-            affectation = get_object_or_404(Affectation, id=id_objet)
-            
-            # Vérifier s'il existe déjà une entrée non fermée pour cette affectation
-            entree_existante = EntreeSortie.objects.filter(
-                affectation=affectation,
-                date_sortie__isnull=True,
-                heure_sortie__isnull=True
-            ).first()
-            
-            if entree_existante:
-                # Mettre à jour l'entrée existante avec la date et l'heure de sortie
-                entree_existante.date_sortie = timezone.now().date()
-                entree_existante.heure_sortie = timezone.now().time()
-                entree_existante.save()
-                action = "sortie"
-            else:
-                # Créer une nouvelle entrée
-                EntreeSortie.objects.create(
-                    affectation=affectation,
-                    date_entree=timezone.now().date(),
-                    heure_entree=timezone.now().time()
-                )
-                action = "entrée"
-            
-            return JsonResponse({
-                'status': 'success',
-                'message': f'Enregistrement d\'une {action} pour l\'affectation {affectation.id}',
-                'data': {
-                    'id': id_objet,
-                    'type': type_objet,
-                    'action': action,
-                    'timestamp': timezone.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
-            })
-            
-        # Ajoutez ici d'autres types d'objets si nécessaire
-        # elif type_objet == 'chauffeur':
-        #     ...
-            
-    except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        }, status=400)
-
-from django.shortcuts import render
-# Temporarily commenting out pyzbar import to fix server startup
-# from pyzbar.pyzbar import decode
-# from PIL import Image
-
-def scanner(request):
-    # Temporarily disabled barcode scanning functionality
-    return JsonResponse({'status': 'error', 'message': 'Barcode scanning is currently disabled. Please check the server configuration.'}, status=503)
+            # Afficher les erreurs de validation du formulaire
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+    else:
+        form = FactureForm()
     
-    # Original scanner code (commented out)
-    # if request.method == 'POST' and 'image' in request.FILES:
-    #     image = request.FILES['image']
-    #     try:
-    #         # Open the image using PIL
-    #         pil_image = Image.open(image)
-    #         # Decode the barcode from the image
-    #         decoded_objects = decode(pil_image)
-    #         
-    #         if decoded_objects:
-    #             # Return the first barcode data found
-    #             barcode_data = decoded_objects[0].data.decode('utf-8')
-    #             return JsonResponse({'status': 'success', 'data': barcode_data})
-    #         else:
-    #             return JsonResponse({'status': 'error', 'message': 'No barcode found'}, status=400)
-    #             
-    #     except Exception as e:
-    #         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-    # 
-    # return render(request, 'scanner.html')
+    # Rendre le template avec le formulaire
+    return render(request, 'facture/creer_facture.html', {'form': form})
+
+def detail_facture(request, pk):
+    facture = get_object_or_404(Facture, pk=pk)
+    return render(request, 'facture/detail_facture.html', {'facture': facture})
+
+def liste_factures(request):
+    factures = Facture.objects.all()
+    return render(request, 'factures/liste_factures.html', {'factures': factures})
+
+def liste_factures(request):
+    factures = Facture.objects.select_related('affectation', 'affectation__camion', 'affectation__chauffeur').all()
+    return render(request, 'facture/liste_factures.html', {
+        'factures': factures,
+        'title': 'Liste des factures'
+    })
+
+@csrf_exempt
+def calculer_distance_ajax(request):
+    """Vue AJAX pour calculer la distance en temps réel"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            lat_depart = data.get('lat_depart')
+            lng_depart = data.get('lng_depart')
+            destination = data.get('destination')
+            
+            if not all([lat_depart, lng_depart, destination]):
+                return JsonResponse({'error': 'Données manquantes'}, status=400)
+            
+            # Créer une instance temporaire pour utiliser les méthodes de géocodage
+            facture_temp = Facture()
+            facture_temp.destination = destination
+            facture_temp.latitude_depart = lat_depart
+            facture_temp.longitude_depart = lng_depart
+            
+            # Géocoder la destination
+            lat_dest, lng_dest = facture_temp.geocoder_destination()
+            
+            if lat_dest and lng_dest:
+                facture_temp.latitude_destination = lat_dest
+                facture_temp.longitude_destination = lng_dest
+                distance = facture_temp.calculer_distance()
+                
+                return JsonResponse({
+                    'distance': distance,
+                    'lat_destination': lat_dest,
+                    'lng_destination': lng_dest
+                })
+            else:
+                return JsonResponse({'error': 'Impossible de géocoder la destination'}, status=400)
+                
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
+
+def calculer_montants(request):
+    """Vue HTMX pour calculer les montants en temps réel"""
+    if request.method == 'GET':
+        form = FactureForm(request.GET)
+        
+        if form.is_valid():
+            affectation = form.cleaned_data.get('affectation')
+            poids = form.cleaned_data.get('poids_marchandise', 0)
+            prix_km = form.cleaned_data.get('prix_par_km', 0)
+            prix_tonne = form.cleaned_data.get('prix_par_tonne', 0)
+            
+            if affectation:
+                distance = affectation.distance
+                frais_transport = distance * float(prix_km)
+                frais_marchandise = float(poids) * float(prix_tonne)
+                total = frais_transport + frais_marchandise
+                
+                # Calculer le total pour ce camion
+                factures_camion = Facture.objects.filter(affectation__camion=affectation.camion)
+                total_camion = factures_camion.aggregate(Sum('montant_total'))['montant_total__sum'] or 0
+                nombre_factures = factures_camion.count()
+                
+                context = {
+                    'frais_transport': round(frais_transport, 2),
+                    'frais_marchandise': round(frais_marchandise, 2),
+                    'total': round(total, 2),
+                    'total_camion': round(total_camion, 2),
+                    'distance': distance,
+                    'affectation': affectation,
+                    'nombre_factures': nombre_factures,
+                    'valid': True
+                }
+                return render(request, 'facture/partials/montants.html', context)
+    
+    # En cas d'erreur ou de formulaire invalide
+    return render(request, 'facture/partials/montants.html', {'valid': False})
+
+
+def get_total_camion(request):
+    """Vue HTMX pour récupérer le total d'un camion spécifique"""
+    if request.method == 'GET' and 'affectation' in request.GET:
+        try:
+            affectation_id = request.GET.get('affectation')
+            affectation = Affectation.objects.get(id=affectation_id)
+            
+            # Calculer le total pour ce camion
+            factures_camion = Facture.objects.filter(affectation__camion=affectation.camion)
+            total_camion = factures_camion.aggregate(Sum('montant_total'))['montant_total__sum'] or 0
+            nombre_factures = factures_camion.count()
+            
+            context = {
+                'affectation': affectation,
+                'total_camion': round(total_camion, 2),
+                'nombre_factures': nombre_factures,
+                'valid': True
+            }
+            return render(request, 'facture/partials/total_camion.html', context)
+        except (ValueError, Affectation.DoesNotExist):
+            pass
+    
+    return render(request, 'facture/partials/total_camion.html', {'valid': False})
+
+
+def total_camion(request):
+    """Vue pour afficher le total de tous les camions avec les détails des affectations"""
+    # Récupérer tous les camions avec le total des factures
+    camions = camion.objects.annotate(
+        total_factures=Sum('affectation__factures__montant_total'),
+        nombre_factures=Count('affectation__factures', distinct=True)
+    ).filter(total_factures__gt=0).order_by('-total_factures')
+
+    # Préparer les données pour le template
+    camions_data = []
+    for cam in camions:
+        # Récupérer toutes les affectations pour ce camion (les plus récentes en premier)
+        affectations = Affectation.objects.filter(camion=cam).order_by('-id')
+        derniere_affectation = affectations.first()
+        
+        # Préparer les détails des affectations
+        affectations_details = []
+        for aff in affectations:
+            # Compter le nombre de factures pour cette affectation
+            nb_factures_aff = aff.factures.count()
+            # Calculer le total des factures pour cette affectation
+            total_aff = aff.factures.aggregate(total=Sum('montant_total'))['total'] or 0
+            
+            # Récupérer la destination et la distance de la première facture si elle existe
+            premiere_facture = aff.factures.first()
+            destination = premiere_facture.destination if premiere_facture else "Non spécifiée"
+            distance = premiere_facture.distance_km if premiere_facture and hasattr(premiere_facture, 'distance_km') else 0
+            
+            affectations_details.append({
+                'id': aff.id,
+                'chauffeur': aff.chauffeur,
+                'date_entree': cam.date_entreeC,
+                'date_sortie': cam.date_sortieC,
+                'nb_factures': nb_factures_aff,
+                'total': total_aff,
+                'statut': 'Terminée' if cam.date_sortieC else 'En cours',
+                'destination': destination,
+                'distance': distance
+            })
+        
+        camions_data.append({
+            'id': cam.id_camion,  # Using id_camion instead of id
+            'matricule': cam.matricule_camion,
+            'marque': cam.marque if hasattr(cam, 'marque') else '',
+            'modele': cam.modele if hasattr(cam, 'modele') else '',
+            'nb_factures': cam.nombre_factures,
+            'total': cam.total_factures or 0,
+            'affectations': affectations_details,
+            'dernier_chauffeur': derniere_affectation.chauffeur if derniere_affectation else None,
+            'derniere_maj': derniere_affectation.date_creation if derniere_affectation and hasattr(derniere_affectation, 'date_creation') else None
+        })
+    
+    # Trier par montant total décroissant
+    camions_data.sort(key=lambda x: x['total'], reverse=True)
+    
+    # Calculer le total général
+    total_general = sum(cam['total'] for cam in camions_data)
+    
+    context = {
+        'camions_data': camions_data,
+        'total_general': round(total_general, 2),
+        'title': 'Totaux par camion'
+    }
+    
+    return render(request, 'facture/total_camion.html', context)
+
+
+def liste_factures(request):
+    factures = Facture.objects.select_related('affectation', 'affectation__camion', 'affectation__chauffeur').all()
+    return render(request, 'facture/liste_factures.html', {
+        'factures': factures,
+        'title': 'Liste des factures'
+    })

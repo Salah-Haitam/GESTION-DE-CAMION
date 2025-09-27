@@ -36,11 +36,17 @@ urlpatterns = [
     path('afficher_utilisateurs/', views.afficher_utilisateurs, name='afficher_utilisateurs'),
     path('modifier_utilisateur/<int:id_user>/', views.modifier_utilisateur, name='modifier_utilisateur'),
     path('download_zpl/<int:chauffeur_id>/', views.download_zpl, name='download_zpl'),
-    path('scan/<str:type_objet>/<int:id_objet>/', views.scan_qr_code, name='scan_qr_code'),
-    path('scanner/', views.scanner_page, name='scanner_page'),
-    path('api/process-scan/', views.process_qr_scan, name='process_qr_scan'),
-    path('process-qr-scan/', views.process_qr_scan, name='process_qr_scan'),
+    # URLs pour le scan de QR codes
+    path('scan-qr/', views.scan_qr, name='scan_qr'),
     path('test_camera/', views.test_camera, name='test_camera'),
+    path('entrees-sorties/', views.afficher_entree_sortie, name='afficher_entree_sortie'),
 
-
+    # Facture URLs
+    path('factures/', views.liste_factures, name='facture_list'),
+    path('facture/creer_facture/', views.creer_facture, name='creer_facture'),
+    path('facture/<int:pk>/', views.detail_facture, name='facture_detail'),
+    path('facture/calculer/', views.calculer_montants, name='calculer_montants'),
+    path('facture/total-camion/', views.get_total_camion, name='get_total_camion'),
+    path('facture/totaux-camions/', views.total_camion, name='total_camion'),
+    path('factures/', views.liste_factures, name='liste_factures'),
 ]

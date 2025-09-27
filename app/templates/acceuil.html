@@ -65,13 +65,8 @@
                                 <tr>
                                     <th style="width: 5%;">ID</th>
                                     <th style="width: 15%;">Chauffeur</th>
-                                    <th style="width: 15%;">Société</th>
                                     <th style="width: 10%;">Matricule</th>
                                     <th style="width: 8%;">Capacité</th>
-                                    <th style="width: 10%;">Entrée</th>
-                                    <th style="width: 10%;">Sortie</th>
-                                    <th style="width: 12%;">Heure entrée</th>
-                                    <th style="width: 15%;">Heure sortie</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -85,29 +80,14 @@
                                             <span class="text-muted">Non affecté</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ camion.nom_societe|default:"-" }}</td>
                                     <td class="text-center">{{ camion.matricule_camion|default:"-" }}</td>
                                     <td class="text-center">{{ camion.capacite|default:"-" }}</td>
-                                    <td class="text-center">{{ camion.date_entreeC|date:"d/m/Y"|default:"-" }}</td>
-                                    <td class="text-center">{{ camion.date_sortieC|date:"d/m/Y"|default:"-" }}</td>
-                                    <td class="text-center">
-                                        {% if camion.heure_entreeC %}
-                                            {{ camion.heure_entreeC|time:"H:i" }}
-                                        {% else %}
-                                            -
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-center">
-                                        {% if camion.heure_sortieC %}
-                                            {{ camion.heure_sortieC|time:"H:i" }}
-                                        {% else %}
-                                            <span class="badge bg-warning text-dark">En attente</span>
-                                        {% endif %}
-                                    </td>
+                                    
+                                    
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="9" class="text-center py-4">Aucun camion enregistré.</td>
+                                    <td colspan="4" class="text-center py-4">Aucun camion enregistré.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -178,7 +158,6 @@
                                     <th style="width: 8%;">ID</th>
                                     <th style="width: 20%;">Chauffeur</th>
                                     <th style="width: 20%;">Matricule camion</th>
-                                    <th style="width: 20%;">Nom société</th>
                                     <th style="width: 15%;">Prestataire</th>
                                     <th style="width: 37%;">QR Code</th>
                                 </tr>
@@ -189,7 +168,6 @@
                                     <td class="text-center">{{ affectation.id }}</td>
                                     <td>{{ affectation.chauffeur.id_chauffeur }}  {{ affectation.chauffeur.nom_chauffeur }} {{ affectation.chauffeur.prenom_chauffeur }}</td>
                                     <td>{{ affectation.camion.matricule_camion }}</td>
-                                    <td class="text-center">{{ affectation.camion.nom_societe }}</td>
                                     <td class="text-center">{{ affectation.prestataire.nom_prestataire }}</td>
                                     <td class="text-center">
                                         {% if affectation.qr_code %}

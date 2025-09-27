@@ -151,6 +151,7 @@
         <th>Nom Utilisateur</th>
         <th>Mot de passe</th>
         <th>Est un Admin?</th>
+        <th>Site</th>
         <th>Actions</th>
     </tr>
     {% for utilisateur in utilisateurs %}
@@ -159,6 +160,7 @@
         <td>{{ utilisateur.username }}</td>
         <td>{{ utilisateur.password }}</td>
         <td>{{ utilisateur.is_admin }}</td>
+        <td>{{ utilisateur.site.nom_site }}</td>
         <td>
             <a class="action-link" href="{% url 'modifier_utilisateur' utilisateur.id_user %}">Modifier</a>
         </td>
